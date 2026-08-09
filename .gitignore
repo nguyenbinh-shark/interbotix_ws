@@ -1,0 +1,24 @@
+# Colcon / ROS 2 build artifacts
+/build/
+/install/
+/log/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Compiled object files
+*.o
+
+# VSCode IntelliSense cache (large, machine-local)
+.vscode/*.db*
+
+# Vendor Interbotix repos — managed separately, not part of this project
+/src/
+
+# Local scratch backups (kept on disk only)
+/t-i-c-n-l-p-k-wondrous-cookie.original-2026-08-10.md
+/t-i-c-n-l-p-k-wondrous-cookie.corrected-2026-08-10.md
+
+# Generated demo binary
+/gen_fit_and_3d_graph/fuzzy_type1_demo
