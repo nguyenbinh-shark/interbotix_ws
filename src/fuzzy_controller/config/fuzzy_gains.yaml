@@ -5,13 +5,13 @@
     loop_rate: 100.0          # = update_rate; Phase 2 bump lên 500 cùng patch FastSyncRead
     watchdog_timeout: 0.2
     reference_pose: [0.0, -1.80, 1.55, 0.8, 0.0]   # 5 khớp arm [waist,shoulder,elbow,wrist_angle,wrist_rotate] (rad); [] -> lấy sleep_positions
-    Ke:   [0.2, 0.2, 0.2, 0.2, 0.2]
-    Ked:  [0.0005, 0.0005, 0.0005, 0.0005, 0.0005]
+    Ke:   [2.0, 3.0, 3.0, 1.5, 2.0]
+    Ked:  [0.005, 0.0005, 0.0005, 0.0005, 0.0005]
     # Ku = gain đầu ra (tunable). Bản gốc gộp luôn Ku vào u_max; nay tách riêng để tune độ khuếch đại
     # vòng kín độc lập với giới hạn an toàn (giá trị = u_max cũ -> giữ nguyên đáp ứng ban đầu).
-    Ku:   [700.0, 700.0, 700.0, 700.0, 700.0]
+    Ku:   [600.0, 800.0, 700.0, 700.0, 700.0]
     # u_max nay CHỈ là ngưỡng bão hòa an toàn (hardware cap ≤ ±885), KHÔNG còn là gain điều khiển.
-    u_max: [600.0, 800.0, 800.0, 600.0, 600.0]
+    u_max: [600.0, 600.0, 600.0, 600.0, 600.0]
     # --- Profile vận tốc/gia tốc trước bộ fuzzy (Ruckig = TOTG, tương đương MoveIt2) ---
     enable_profile: true          # false = behavior cũ (step), để so sánh A/B
     max_velocities:    [3.14, 3.14, 3.14, 3.14, 3.14]  # rad/s (π, theo URDF); MoveIt2 đặt has_velocity_limits=false

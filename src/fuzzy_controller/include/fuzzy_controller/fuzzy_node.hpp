@@ -10,6 +10,7 @@
 #include <ruckig/ruckig.hpp>  // TOTG online: sinh q_ref(t) có v,a giới hạn trước bộ fuzzy
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/node_interfaces/node_parameters_interface.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/parameter.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>

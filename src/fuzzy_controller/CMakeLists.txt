@@ -18,6 +18,7 @@ target_include_directories(fuzzy_node PRIVATE include ${CMAKE_CURRENT_SOURCE_DIR
 ament_target_dependencies(fuzzy_node rclcpp sensor_msgs interbotix_xs_msgs)
 target_link_libraries(fuzzy_node m ruckig::ruckig)   # fuzzy_type1.c dùng expf/fabsf/powf
 install(TARGETS fuzzy_node DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/fuzzy_gui DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

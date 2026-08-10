@@ -57,6 +57,12 @@ FuzzyNode::FuzzyNode() : rclcpp::Node("fuzzy_node") {
   sub_js_ = this->create_subscription<sensor_msgs::msg::JointState>(
       "joint_states", rclcpp::SensorDataQoS(),
       std::bind(&FuzzyNode::onJointStates, this, std::placeholders::_1));
+
+  // Setpoint runtime (5 khớp, rad) — ghi đè reference_ để tune mà không sửa yaml/relaunch.
+  // Topic tương đối -> /rx150/fuzzy/setpoint. QoS reliable để không mất lệnh.
+  sub_setpoint_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
+      "fuzzy/setpoint", 10,
+      std::bind(&FuzzyNode::onSetpoint, this, std::placeholders::_1));
   pub_err_ = this->create_publisher<sensor_msgs::msg::JointState>("fuzzy/error", rclcpp::SensorDataQoS());
   pub_edot_ = this->create_publisher<sensor_msgs::msg::JointState>("fuzzy/edot", rclcpp::SensorDataQoS());
   pub_eff_ = this->create_publisher<sensor_msgs::msg::JointState>("fuzzy/effort", rclcpp::SensorDataQoS());
@@ -68,6 +74,11 @@ FuzzyNode::FuzzyNode() : rclcpp::Node("fuzzy_node") {
   timer_ = this->create_wall_timer(
       std::chrono::microseconds(static_cast<int64_t>(1e6 / loop_rate_)),
       std::bind(&FuzzyNode::onTimer, this));
+
+  // 6b. Live-tuning: ros2 param set Ke/Ked/Ku/u_max cập nhật thẳng vào vòng điều khiển.
+  // Đăng ký SAU khi các declare_parameter ở mục 1 hoàn tất (chỉ set runtime mới trigger).
+  param_cb_handle_ = this->add_on_set_parameters_callback(
+      std::bind(&FuzzyNode::onParamChange, this, std::placeholders::_1));
 
   // 7. Best-effort shutdown: zero PWM + torque off
   rclcpp::on_shutdown([this]() {
@@ -180,6 +191,60 @@ void FuzzyNode::onJointStates(const sensor_msgs::msg::JointState::SharedPtr msg)
   last_js_ = *msg;
   last_js_stamp_ = this->now();
   have_js_ = true;
+}
+
+void FuzzyNode::onSetpoint(const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
+  // Chấp nhận setpoint mới một khi đã biết số khớp (ready_).
+  if (!ready_) {
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+        "setpoint đến trước onRobotInfo -> bỏ qua");
+    return;
+  }
+  if (msg->data.size() != reference_.size()) {
+    RCLCPP_WARN(this->get_logger(),
+        "setpoint sai số khớp: %zu != %zu -> bỏ qua", msg->data.size(), reference_.size());
+    return;
+  }
+  reference_.assign(msg->data.begin(), msg->data.end());
+  // Nếu profile đã cấu hình, cập nhật target để (khi wire) Ruckig tiến về setpoint mới.
+  if (profile_configured_) {
+    for (size_t i = 0; i < kProfileDoF; ++i) otg_in_.target_position[i] = reference_[i];
+  }
+  RCLCPP_INFO(this->get_logger(), "setpoint cập nhật: [%.3f %.3f %.3f %.3f %.3f]",
+      reference_[0], reference_[1], reference_[2], reference_[3], reference_[4]);
+}
+
+rcl_interfaces::msg::SetParametersResult FuzzyNode::onParamChange(
+    const std::vector<rclcpp::Parameter> & params) {
+  // Live-tuning: chỉ Ke/Ked/Ku/u_max (mảng double, đúng số khớp) có hiệu lực online.
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+  for (const auto & p : params) {
+    const std::string & name = p.get_name();
+    const bool is_gain = (name == "Ke" || name == "Ked" || name == "Ku" || name == "u_max");
+    if (!is_gain) {
+      continue;  // param khác (loop_rate, reference_pose, profile...) — nhận nhưng không tác dụng online
+    }
+    if (p.get_type() != rclcpp::PARAMETER_DOUBLE_ARRAY) {
+      result.successful = false;
+      result.reason = name + " cần mảng double";
+      break;
+    }
+    std::vector<double> v = p.as_double_array();
+    if (v.size() != Ke_.size()) {
+      result.successful = false;
+      result.reason = name + " size " + std::to_string(v.size()) + " != " +
+                      std::to_string(Ke_.size());
+      break;
+    }
+    if (name == "Ke") Ke_ = v;
+    else if (name == "Ked") Ked_ = v;
+    else if (name == "Ku") Ku_ = v;
+    else u_max_ = v;
+    RCLCPP_INFO(this->get_logger(), "live param %s = [%g %g %g %g %g]",
+        name.c_str(), v[0], v[1], v[2], v[3], v[4]);
+  }
+  return result;
 }
 
 void FuzzyNode::onTimer() {
