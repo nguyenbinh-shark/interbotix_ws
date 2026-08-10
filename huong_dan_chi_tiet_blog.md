@@ -153,7 +153,7 @@ ros2 run fuzzy_controller fuzzy_gui
 
 **Tính năng trên GUI:**
 - **Tab "Setpoint"**: 5 thanh trượt Slider tương ứng với 5 khớp (`waist`, `shoulder`, `elbow`, `wrist_angle`, `wrist_rotate`). Kéo trượt để publish trực tiếp tới topic `/rx150/fuzzy/setpoint`.
-- **Tab "Gains"**: Bảng nhập tham số $K_e, K_{ed}, K_u, u_{max}$ cho từng khớp. Nút **Apply** gọi service `set_parameters` đè thông số tức thì vào vòng lặp điều khiển 100 Hz mà không cần khởi động lại Node.
+- **Tab "Gains"**: Bảng nhập tham số $K_e, K_{ed}, K_u, u_{max}$ cho từng khớp. Nút **Áp dụng hết** gọi service `set_parameters` đè thông số tức thì vào vòng lặp điều khiển 100 Hz mà không cần khởi động lại Node. Đặc biệt có nút **Lưu vào yaml** giúp bạn lưu thẳng bộ gain tối ưu vào file `fuzzy_gains.yaml` để dùng cho lần khởi động tiếp theo.
 
 ### Bước 4.3: Tune tham số hoặc Đặt Setpoint qua ROS 2 CLI
 
@@ -184,7 +184,23 @@ ros2 param set /rx150/fuzzy_node Ku "[600.0, 800.0, 700.0, 700.0, 700.0]"
 - Bridge chia nhỏ quỹ đạo TOTP (Time-Optimal Trajectory Parameterization) của MoveIt thành chuỗi các điểm vị trí theo mốc thời gian, sau đó **nội suy tuyến tính ở tần số 100 Hz** và đẩy vào topic `/rx150/fuzzy/setpoint`.
 - `fuzzy_node` tiếp nhận setpoint liên tục và điều khiển động cơ bám theo bằng luồng PWM.
 
-### Bước 5.2: Khởi động tích hợp MoveIt + Fuzzy Controller
+### Bước 5.2: Kiểm tra Độc Lập Trajectory Bridge (Test Script)
+Trước khi chạy toàn bộ hệ thống MoveIt cồng kềnh, bạn nên kiểm tra xem Bridge có đang hoạt động tốt (nhận Goal và stream setpoint thành công) bằng script tự động.
+
+**Chạy kiểm thử (2 Terminal):**
+```bash
+# Terminal 1: Chạy driver và bộ điều khiển Fuzzy
+ros2 launch fuzzy_controller fuzzy_control.launch.py
+
+# Terminal 2: Chạy node test bridge (giao tiếp qua action server)
+ros2 run fuzzy_controller fuzzy_bridge_test
+
+# (Tùy chọn) Chạy test với góc lệch tùy chỉnh ở khớp khác
+ros2 run fuzzy_controller fuzzy_bridge_test -- 0.05 elbow
+```
+*Kết quả:* Script sẽ gửi liên tiếp 2 Goal (zero-motion và small-motion) để test tracking error. Nếu Terminal 2 báo `TẤT CẢ PASS ✓`, hệ thống Action Server của bridge đã sẵn sàng cho MoveIt. Đóng Terminal 1 trước khi sang Bước 5.3.
+
+### Bước 5.3: Khởi động tích hợp MoveIt + Fuzzy Controller
 Chạy file launch tích hợp duy nhất:
 
 ```bash
@@ -194,7 +210,7 @@ source ~/interbotix_ws/install/setup.bash
 ros2 launch fuzzy_controller fuzzy_moveit.launch.py
 ```
 
-### Bước 5.3: Thao tác điều khiển trên RViz 2
+### Bước 5.4: Thao tác điều khiển trên RViz 2
 1. Khi RViz 2 mở ra, nhìn vào khung **MotionPlanning** ở góc trái.
 2. Chọn tab **Planning**.
 3. Kéo con trỏ End-Effector (cầu điều khiển màu cam/xanh) đến vị trí mong muốn trong không gian 3D, hoặc chọn sẵn pose ở menu `Goal State` (VD: `Home`, `Sleep`).
@@ -254,6 +270,7 @@ cd ~/interbotix_ws/src/fuzzy_controller
 | **Vẽ đồ thị Overlay Runs** | `cd ~/interbotix_ws && python3 plot_runs.py` |
 | **Launch Fuzzy Arm Real** | `ros2 launch fuzzy_controller fuzzy_control.launch.py` |
 | **Mở GUI Tune Tkinter** | `ros2 run fuzzy_controller fuzzy_gui` |
+| **Test Bridge Độc Lập** | `ros2 run fuzzy_controller fuzzy_bridge_test` |
 | **Launch MoveIt 2 + Fuzzy** | `ros2 launch fuzzy_controller fuzzy_moveit.launch.py` |
 | **Mở PlotJuggler Layout** | `ros2 launch fuzzy_controller fuzzy_plot.launch.py` |
 | **Ghi ROS 2 Bag** | `cd ~/interbotix_ws/src/fuzzy_controller && ./config/fuzzy_record.sh my_test_bag` |
