@@ -297,6 +297,20 @@ def generate_launch_description():
             description='file path to the config file RViz should load.',
         )
     )
+    # external_srdf_loc: declare riêng vì helper declare_interbotix_xsarm_robot_description_*
+    # KHÔNG khai báo nó, nhưng construct_interbotix_xsarm_semantic_robot_description_command
+    # lại reference LaunchConfiguration('external_srdf_loc'). Thiếu -> launch fail ngay.
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'external_srdf_loc',
+            default_value=TextSubstitution(text=''),
+            description=(
+                'the file path to the custom semantic description file that you would like to '
+                "include in the Interbotix robot's semantic description."
+            ),
+        )
+    )
+
     declared_arguments.extend(
         declare_interbotix_xsarm_robot_description_launch_arguments(
             show_gripper_bar='true',
