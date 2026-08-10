@@ -210,7 +210,9 @@ void FuzzyNode::onSetpoint(const std_msgs::msg::Float64MultiArray::SharedPtr msg
   if (profile_configured_) {
     for (size_t i = 0; i < kProfileDoF; ++i) otg_in_.target_position[i] = reference_[i];
   }
-  RCLCPP_INFO(this->get_logger(), "setpoint cập nhật: [%.3f %.3f %.3f %.3f %.3f]",
+  // Throttle 1 Hz: bridge stream 100 Hz, log mỗi msg sẽ flood console.
+  RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+      "setpoint cập nhật: [%.3f %.3f %.3f %.3f %.3f]",
       reference_[0], reference_[1], reference_[2], reference_[3], reference_[4]);
 }
 
