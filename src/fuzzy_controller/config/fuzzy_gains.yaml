@@ -12,6 +12,14 @@
     Ku:   [600.0, 800.0, 700.0, 700.0, 700.0]
     # u_max nay CHỈ là ngưỡng bão hòa an toàn (hardware cap ≤ ±885), KHÔNG còn là gain điều khiển.
     u_max: [600.0, 600.0, 600.0, 600.0, 600.0]
+    
+    # --- Gravity Compensation (Pinocchio RNEA) ---
+    enable_gravity_comp: true
+    # Hệ số chuyển đổi N·m → PWM cho từng khớp [waist, shoulder, elbow, wrist_angle, wrist_rotate]
+    # Ước lượng từ datasheet: stall_torque @ 12V → PWM=885
+    pwm_per_Nm: [885.0, 632.0, 632.0, 885.0, 885.0]
+    # Dấu bù trọng lực: +1 hoặc -1, phụ thuộc Drive_Mode (reverse) của motor
+    gravity_sign: [1.0, 1.0, 1.0, 1.0, 1.0]
     # --- Profile vận tốc/gia tốc trước bộ fuzzy (Ruckig = TOTG, tương đương MoveIt2) ---
     enable_profile: true          # false = behavior cũ (step), để so sánh A/B
     max_velocities:    [3.14, 3.14, 3.14, 3.14, 3.14]  # rad/s (π, theo URDF); MoveIt2 đặt has_velocity_limits=false

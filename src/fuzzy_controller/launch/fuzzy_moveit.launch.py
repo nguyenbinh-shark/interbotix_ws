@@ -53,6 +53,8 @@ def launch_setup(context, *args, **kwargs):
 
     robot_model_launch_arg = LaunchConfiguration('robot_model')
     robot_name_launch_arg = LaunchConfiguration('robot_name')
+    use_sim_launch_arg = LaunchConfiguration('use_sim')
+    load_configs_launch_arg = LaunchConfiguration('load_configs')
     use_moveit_rviz_launch_arg = LaunchConfiguration('use_moveit_rviz')
     rviz_config_file_launch_arg = LaunchConfiguration('rviz_config_file')
     robot_description_launch_arg = LaunchConfiguration('robot_description')
@@ -79,7 +81,8 @@ def launch_setup(context, *args, **kwargs):
             'robot_model': robot_model,
             'robot_name': robot_name,
             'motor_configs': motor_configs,
-            'use_sim': 'false',
+            'load_configs': load_configs_launch_arg,
+            'use_sim': use_sim_launch_arg,
             'use_rviz': 'false',
         }.items())
 
@@ -97,7 +100,10 @@ def launch_setup(context, *args, **kwargs):
         name='fuzzy_node',
         namespace=robot_name,
         output='screen',
-        parameters=[fuzzy_params])
+        parameters=[
+            fuzzy_params,
+            {'robot_description': robot_description_launch_arg}
+        ])
 
     # ------------------------------------------------------------------ #
     # 3. fuzzy_trajectory_bridge (FollowJointTrajectory action server)   #
@@ -280,10 +286,32 @@ def generate_launch_description():
     )
     declared_arguments.append(
         DeclareLaunchArgument(
+            'use_sim',
+            default_value='false',
+            choices=('true', 'false'),
+            description=(
+                'uses xs_sdk_sim instead of the physical xs_sdk driver; useful for safe launch '
+                'and MoveIt verification.'
+            ),
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
             'use_moveit_rviz',
             default_value='true',
             choices=('true', 'false'),
             description="launches RViz with MoveIt's RViz configuration.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'load_configs',
+            default_value='false',
+            choices=('true', 'false'),
+            description=(
+                'Write motor register config to EEPROM at startup. Enable only after '
+                'changing the motor config or replacing a motor.'
+            ),
         )
     )
     declared_arguments.append(

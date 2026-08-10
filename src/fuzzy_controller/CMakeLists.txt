@@ -13,13 +13,24 @@ find_package(sensor_msgs REQUIRED)
 find_package(interbotix_xs_msgs REQUIRED)
 # TOTG online (profile vận tốc/gia tốc trước bộ fuzzy). apt: ros-humble-ruckig.
 find_package(ruckig CONFIG REQUIRED)
-add_executable(fuzzy_node src/fuzzy_node.cpp src/fuzzy/fuzzy_type1.c)
+find_package(pinocchio REQUIRED)
+find_package(urdf REQUIRED)
+add_executable(fuzzy_node src/fuzzy_node.cpp src/gravity_comp.cpp src/fuzzy/fuzzy_type1.c)
 target_include_directories(fuzzy_node PRIVATE include ${CMAKE_CURRENT_SOURCE_DIR}/src/fuzzy)
-ament_target_dependencies(fuzzy_node rclcpp sensor_msgs interbotix_xs_msgs)
-target_link_libraries(fuzzy_node m ruckig::ruckig)   # fuzzy_type1.c dùng expf/fabsf/powf
+ament_target_dependencies(fuzzy_node rclcpp sensor_msgs interbotix_xs_msgs urdf)
+target_link_libraries(fuzzy_node m ruckig::ruckig pinocchio::pinocchio)   # fuzzy_type1.c dùng expf/fabsf/powf
 install(TARGETS fuzzy_node DESTINATION lib/${PROJECT_NAME})
-install(PROGRAMS scripts/fuzzy_gui scripts/fuzzy_trajectory_bridge DESTINATION lib/${PROJECT_NAME})
+install(
+  PROGRAMS
+    scripts/fuzzy_gui
+    scripts/fuzzy_trajectory_bridge
+    scripts/fuzzy_bridge_test
+  DESTINATION lib/${PROJECT_NAME}
+)
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
+ament_environment_hooks(
+  "${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/geometric_shapes_shim.sh"
+)
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()

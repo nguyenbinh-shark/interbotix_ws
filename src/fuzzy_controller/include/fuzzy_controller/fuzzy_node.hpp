@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <ruckig/ruckig.hpp>  // TOTG online: sinh q_ref(t) có v,a giới hạn trước bộ fuzzy
+#include "fuzzy_controller/gravity_comp.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/node_interfaces/node_parameters_interface.hpp>
@@ -44,6 +45,12 @@ class FuzzyNode : public rclcpp::Node {
   double max_jerk_ = 0.0;  // 0 -> jerk lớn (~bang-bang accel, gần TOTG nhất); >0 -> mượt kiểu S-curve
   bool sync_mode_ = false;  // false = per-khớp độc lập (nhanh nhất); true = đồng bộ cùng thời gian
 
+  // --- Gravity Compensation ---
+  std::unique_ptr<GravityCompensation> grav_comp_;
+  bool enable_gravity_comp_ = true;
+  std::vector<double> pwm_per_Nm_;
+  std::vector<double> gravity_sign_;
+
   // --- Trạng thái profile (Ruckig) ---
   std::optional<ruckig::Ruckig<kProfileDoF>> otg_;
   ruckig::InputParameter<kProfileDoF> otg_in_;
@@ -67,6 +74,7 @@ class FuzzyNode : public rclcpp::Node {
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_edot_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_eff_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_ref_;  // debug: profile reference
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_grav_; // debug: gravity comp
   rclcpp::TimerBase::SharedPtr timer_;
 
   std::vector<std::string> joint_names_;

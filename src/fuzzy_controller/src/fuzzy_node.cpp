@@ -35,6 +35,12 @@ FuzzyNode::FuzzyNode() : rclcpp::Node("fuzzy_node") {
   max_jerk_ = this->declare_parameter<double>("max_jerk", 0.0);
   sync_mode_ = this->declare_parameter<bool>("sync_mode", false);
 
+  // --- Gravity Compensation ---
+  enable_gravity_comp_ = this->declare_parameter<bool>("enable_gravity_comp", true);
+  pwm_per_Nm_ = this->declare_parameter<std::vector<double>>("pwm_per_Nm", std::vector<double>{885.0, 632.0, 632.0, 885.0, 885.0});
+  gravity_sign_ = this->declare_parameter<std::vector<double>>("gravity_sign", std::vector<double>{1.0, 1.0, 1.0, 1.0, 1.0});
+  this->declare_parameter<std::string>("robot_description", "");
+
   // 2. Clients (relative names -> resolved under launch namespace "rx150")
   cli_info_ = this->create_client<interbotix_xs_msgs::srv::RobotInfo>("get_robot_info");
   cli_modes_ = this->create_client<interbotix_xs_msgs::srv::OperatingModes>("set_operating_modes");
@@ -68,6 +74,7 @@ FuzzyNode::FuzzyNode() : rclcpp::Node("fuzzy_node") {
   pub_eff_ = this->create_publisher<sensor_msgs::msg::JointState>("fuzzy/effort", rclcpp::SensorDataQoS());
   pub_ref_ = this->create_publisher<sensor_msgs::msg::JointState>(
       "fuzzy/reference", rclcpp::SensorDataQoS());  // profile q_ref/qdot_ref để plot
+  pub_grav_ = this->create_publisher<sensor_msgs::msg::JointState>("fuzzy/gravity", rclcpp::SensorDataQoS());
   pub_cmd_ = this->create_publisher<interbotix_xs_msgs::msg::JointGroupCommand>("commands/joint_group", 10);
 
   // 6. Control timer
@@ -111,6 +118,19 @@ void FuzzyNode::onRobotInfo(
   js_index_.clear();
   for (size_t i = 0; i < joint_names_.size(); ++i) {
     js_index_[joint_names_[i]] = static_cast<size_t>(resp->joint_state_indices.at(i));
+  }
+
+  // Khởi tạo GravityCompensation
+  std::string urdf_xml = this->get_parameter("robot_description").as_string();
+  if (!urdf_xml.empty()) {
+    grav_comp_ = std::make_unique<GravityCompensation>(urdf_xml, joint_names_);
+    if (!grav_comp_->isValid()) {
+      RCLCPP_WARN(this->get_logger(), "GravityCompensation khởi tạo thất bại, sẽ tắt bù trọng lực.");
+      enable_gravity_comp_ = false;
+    }
+  } else {
+    RCLCPP_WARN(this->get_logger(), "Không tìm thấy URDF (robot_description), tắt bù trọng lực.");
+    enable_gravity_comp_ = false;
   }
 
   // Fall back to sleep positions if no reference was configured.
@@ -285,9 +305,24 @@ void FuzzyNode::onTimer() {
   edot_msg.velocity.assign(n, 0.0);
   eff_msg.effort.assign(n, 0.0);
 
+  sensor_msgs::msg::JointState grav_msg;
+  grav_msg.header.stamp = stamp;
+  grav_msg.name = joint_names_;
+  grav_msg.effort.assign(n, 0.0);
+
+  std::vector<double> current_positions(n, 0.0);
   for (size_t i = 0; i < n; ++i) {
     const size_t idx = js_index_.at(joint_names_[i]);
-    const double pos = last_js_.position.size() > idx ? last_js_.position[idx] : 0.0;
+    current_positions[i] = last_js_.position.size() > idx ? last_js_.position[idx] : 0.0;
+  }
+
+  std::vector<double> grav_torques(n, 0.0);
+  if (grav_comp_ && enable_gravity_comp_) {
+    grav_torques = grav_comp_->compute(current_positions);
+  }
+
+  for (size_t i = 0; i < n; ++i) {
+    const double pos = current_positions[i];
     const double vel = last_js_.velocity.size() > idx ? last_js_.velocity[idx] : 0.0;
 
     const double e = reference_[i] - pos;
@@ -299,12 +334,21 @@ void FuzzyNode::onTimer() {
     // Ku = gain đầu ra (tunable); u_max = ngưỡng bão hòa an toàn (hardware cap, ≤ ±885).
     // Tách Ku khỏi u_max: tune độ khuếch đại vòng kín độc lập với giới hạn an toàn.
     double u = static_cast<double>(un) * Ku_[i];
+
+    // --- Gravity compensation feedforward ---
+    double grav_pwm = 0.0;
+    if (grav_comp_ && enable_gravity_comp_) {
+      grav_pwm = grav_torques[i] * pwm_per_Nm_[i] * gravity_sign_[i];
+    }
+    u += grav_pwm;
+
     u = std::clamp(u, -u_max_[i], u_max_[i]);
 
     cmd[i] = static_cast<float>(u);
     err_msg.position[i] = e;
     edot_msg.velocity[i] = ed;
     eff_msg.effort[i] = u;
+    grav_msg.effort[i] = grav_pwm;
   }
 
   interbotix_xs_msgs::msg::JointGroupCommand cmd_msg;
@@ -315,6 +359,7 @@ void FuzzyNode::onTimer() {
   pub_err_->publish(err_msg);
   pub_edot_->publish(edot_msg);
   pub_eff_->publish(eff_msg);
+  pub_grav_->publish(grav_msg);
 }
 
 int main(int argc, char ** argv) {

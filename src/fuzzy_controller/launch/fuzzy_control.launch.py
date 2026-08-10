@@ -9,10 +9,15 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from interbotix_xs_modules.xs_launch import declare_interbotix_xsarm_robot_description_launch_arguments
 
 
 def generate_launch_description():
+    load_configs = LaunchConfiguration('load_configs')
+    robot_description = LaunchConfiguration('robot_description')
+
     # Action 1 — bring up the xsarm driver/stack for the rx150, using our motor config.
     xsarm_launch = os.path.join(
         get_package_share_directory('interbotix_xsarm_control'),
@@ -30,6 +35,7 @@ def generate_launch_description():
             'robot_model': 'rx150',
             'robot_name': 'rx150',
             'motor_configs': motor_configs,
+            'load_configs': load_configs,
             'use_sim': 'false',
             'use_rviz': 'false',
         }.items())
@@ -46,6 +52,25 @@ def generate_launch_description():
         name='fuzzy_node',
         namespace='rx150',
         output='screen',
-        parameters=[fuzzy_params])
+        parameters=[
+            fuzzy_params,
+            {'robot_description': robot_description}
+        ])
 
-    return LaunchDescription([xsarm, fuzzy_node])
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'load_configs',
+            default_value='false',
+            choices=('true', 'false'),
+            description=(
+                'Write motor register config to EEPROM at startup. Enable only after '
+                'changing the motor config or replacing a motor.'
+            ),
+        ),
+        xsarm,
+        fuzzy_node,
+    ] + declare_interbotix_xsarm_robot_description_launch_arguments(
+        show_gripper_bar='true',
+        show_gripper_fingers='true',
+        hardware_type='actual',
+    ))
