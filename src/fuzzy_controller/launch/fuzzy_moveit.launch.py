@@ -195,9 +195,7 @@ def launch_setup(context, *args, **kwargs):
         'publish_transforms_updates': True,
     }
 
-    sensor_parameters = {
-        'sensors': [''],
-    }
+    sensor_parameters = load_yaml('fuzzy_controller', 'config/sensors_3d.yaml')
 
     remappings = [
         (
@@ -264,7 +262,17 @@ def launch_setup(context, *args, **kwargs):
         output={'both': 'log'},
     )
 
-    return [xsarm, fuzzy_node, bridge_node, move_group_node, moveit_rviz_node]
+    # ------------------------------------------------------------------ #
+    # 6. Static TF for Camera (Eye-to-hand default)                      #
+    # ------------------------------------------------------------------ #
+    static_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='camera_static_tf',
+        arguments=['1.0', '0.0', '1.0', '0', '1.57', '0', 'world', 'camera_link']
+    )
+
+    return [xsarm, fuzzy_node, bridge_node, move_group_node, moveit_rviz_node, static_tf]
 
 
 def generate_launch_description():
