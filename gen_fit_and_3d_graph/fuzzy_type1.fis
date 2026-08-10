@@ -1,5 +1,5 @@
 [System]
-Name='fuzzy_type11'
+Name='fuzzy_type1'
 Type='mamdani'
 Version=2.0
 NumInputs=2
