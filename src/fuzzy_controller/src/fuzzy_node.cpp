@@ -37,7 +37,7 @@ FuzzyNode::FuzzyNode() : rclcpp::Node("fuzzy_node") {
 
   // --- Gravity Compensation ---
   enable_gravity_comp_ = this->declare_parameter<bool>("enable_gravity_comp", true);
-  pwm_per_Nm_ = this->declare_parameter<std::vector<double>>("pwm_per_Nm", std::vector<double>{885.0, 632.0, 632.0, 885.0, 885.0});
+  Gff_ = this->declare_parameter<std::vector<double>>("Gff", std::vector<double>{885.0, 632.0, 632.0, 885.0, 885.0});
   gravity_sign_ = this->declare_parameter<std::vector<double>>("gravity_sign", std::vector<double>{1.0, 1.0, 1.0, 1.0, 1.0});
   this->declare_parameter<std::string>("robot_description", "");
 
@@ -238,12 +238,12 @@ void FuzzyNode::onSetpoint(const std_msgs::msg::Float64MultiArray::SharedPtr msg
 
 rcl_interfaces::msg::SetParametersResult FuzzyNode::onParamChange(
     const std::vector<rclcpp::Parameter> & params) {
-  // Live-tuning: chỉ Ke/Ked/Ku/u_max (mảng double, đúng số khớp) có hiệu lực online.
+  // Live-tuning: chỉ Ke/Ked/Ku/u_max/Gff (mảng double, đúng số khớp) có hiệu lực online.
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
   for (const auto & p : params) {
     const std::string & name = p.get_name();
-    const bool is_gain = (name == "Ke" || name == "Ked" || name == "Ku" || name == "u_max");
+    const bool is_gain = (name == "Ke" || name == "Ked" || name == "Ku" || name == "u_max" || name == "Gff");
     if (!is_gain) {
       continue;  // param khác (loop_rate, reference_pose, profile...) — nhận nhưng không tác dụng online
     }
@@ -262,7 +262,8 @@ rcl_interfaces::msg::SetParametersResult FuzzyNode::onParamChange(
     if (name == "Ke") Ke_ = v;
     else if (name == "Ked") Ked_ = v;
     else if (name == "Ku") Ku_ = v;
-    else u_max_ = v;
+    else if (name == "u_max") u_max_ = v;
+    else if (name == "Gff") Gff_ = v;
     RCLCPP_INFO(this->get_logger(), "live param %s = [%g %g %g %g %g]",
         name.c_str(), v[0], v[1], v[2], v[3], v[4]);
   }
@@ -322,6 +323,7 @@ void FuzzyNode::onTimer() {
   }
 
   for (size_t i = 0; i < n; ++i) {
+    const size_t idx = js_index_.at(joint_names_[i]);
     const double pos = current_positions[i];
     const double vel = last_js_.velocity.size() > idx ? last_js_.velocity[idx] : 0.0;
 
@@ -338,7 +340,7 @@ void FuzzyNode::onTimer() {
     // --- Gravity compensation feedforward ---
     double grav_pwm = 0.0;
     if (grav_comp_ && enable_gravity_comp_) {
-      grav_pwm = grav_torques[i] * pwm_per_Nm_[i] * gravity_sign_[i];
+      grav_pwm = grav_torques[i] * Gff_[i] * gravity_sign_[i];
     }
     u += grav_pwm;
 

@@ -30,12 +30,13 @@ from std_msgs.msg import Float64MultiArray
 DEFAULT_JOINTS = ["waist", "shoulder", "elbow", "wrist_angle", "wrist_rotate"]
 DEFAULT_POSE = [0.0, -1.80, 1.55, 0.8, 0.0]
 DEFAULT_RANGE = math.pi
-GAIN_ORDER = ["Ke", "Ked", "Ku", "u_max"]
+GAIN_ORDER = ["Ke", "Ked", "Ku", "u_max", "Gff"]
 GAIN_DEFAULTS = {
     "Ke":   [0.2, 0.2, 0.2, 0.2, 0.2],
     "Ked":  [0.0005, 0.0005, 0.0005, 0.0005, 0.0005],
     "Ku":   [700.0, 700.0, 700.0, 700.0, 700.0],
     "u_max": [600.0, 800.0, 800.0, 600.0, 600.0],
+    "Gff":   [885.0, 632.0, 632.0, 885.0, 885.0],
 }
 
 

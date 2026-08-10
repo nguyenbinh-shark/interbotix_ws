@@ -48,7 +48,7 @@ class FuzzyNode : public rclcpp::Node {
   // --- Gravity Compensation ---
   std::unique_ptr<GravityCompensation> grav_comp_;
   bool enable_gravity_comp_ = true;
-  std::vector<double> pwm_per_Nm_;
+  std::vector<double> Gff_;
   std::vector<double> gravity_sign_;
 
   // --- Trạng thái profile (Ruckig) ---
