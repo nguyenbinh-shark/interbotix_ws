@@ -14,7 +14,6 @@ __pycache__/
 .vscode/*.db*
 
 # Vendor Interbotix repos — managed separately, not part of this project
-/src/
 
 # Local scratch backups (kept on disk only)
 /t-i-c-n-l-p-k-wondrous-cookie.original-2026-08-10.md

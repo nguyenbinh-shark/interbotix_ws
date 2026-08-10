@@ -1,0 +1,20 @@
+# V1: 100 Hz an toàn (không patch vendor). Key PHẢI khớp tên node fully-qualified.
+/rx150/fuzzy_node:
+  ros__parameters:
+    group_name: "arm"
+    loop_rate: 100.0          # = update_rate; Phase 2 bump lên 500 cùng patch FastSyncRead
+    watchdog_timeout: 0.2
+    reference_pose: [0.0, -1.80, 1.55, 0.8, 0.0]   # 5 khớp arm [waist,shoulder,elbow,wrist_angle,wrist_rotate] (rad); [] -> lấy sleep_positions
+    Ke:   [2.0, 2.0, 2.0, 2.5, 2.5]
+    Ked:  [0.05, 0.05, 0.05, 0.05, 0.05]
+    # Ku = gain đầu ra (tunable). Bản gốc gộp luôn Ku vào u_max; nay tách riêng để tune độ khuếch đại
+    # vòng kín độc lập với giới hạn an toàn (giá trị = u_max cũ -> giữ nguyên đáp ứng ban đầu).
+    Ku:   [300.0, 400.0, 400.0, 300.0, 300.0]
+    # u_max nay CHỈ là ngưỡng bão hòa an toàn (hardware cap ≤ ±885), KHÔNG còn là gain điều khiển.
+    u_max: [600.0, 800.0, 800.0, 600.0, 600.0]
+    # --- Profile vận tốc/gia tốc trước bộ fuzzy (Ruckig = TOTG, tương đương MoveIt2) ---
+    enable_profile: true          # false = behavior cũ (step), để so sánh A/B
+    max_velocities:    [3.14, 3.14, 3.14, 3.14, 3.14]  # rad/s (π, theo URDF); MoveIt2 đặt has_velocity_limits=false
+    max_accelerations: [5.0, 5.0, 5.0, 5.0, 5.0]        # rad/s² (= giới hạn MoveIt2 rx150_joint_limits.yaml)
+    max_jerk: 0.0               # 0 -> jerk lớn (≈bang-bang accel, gần TOTG nhất); >0 -> mượt kiểu S-curve
+    sync_mode: false            # false = per-khớp độc lập (nhanh nhất); true = đồng bộ tất cả khớp về đích cùng lúc
