@@ -10,7 +10,10 @@
 #include <ruckig/ruckig.hpp>  // TOTG online: sinh q_ref(t) có v,a giới hạn trước bộ fuzzy
 
 #include <rclcpp/rclcpp.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
+#include <rclcpp/parameter.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 #include "interbotix_xs_msgs/msg/joint_group_command.hpp"
 #include "interbotix_xs_msgs/srv/robot_info.hpp"
 #include "interbotix_xs_msgs/srv/operating_modes.hpp"
@@ -54,6 +57,10 @@ class FuzzyNode : public rclcpp::Node {
   rclcpp::Client<interbotix_xs_msgs::srv::TorqueEnable>::SharedPtr cli_torque_;
 
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr sub_js_;
+  // Nhận vị trí setpoint runtime (5 khớp) để tune mà không relaunch/sửa yaml.
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr sub_setpoint_;
+  // Giữ callback handle sống để live-tuning Ke/Ked/Ku/u_max qua `ros2 param set`.
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
   rclcpp::Publisher<interbotix_xs_msgs::msg::JointGroupCommand>::SharedPtr pub_cmd_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_err_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_edot_;
@@ -70,6 +77,8 @@ class FuzzyNode : public rclcpp::Node {
 
   void configureProfile();  // set limit/target cho Ruckig (gọi 1 lần trong onRobotInfo)
   void onJointStates(const sensor_msgs::msg::JointState::SharedPtr msg);
+  void onSetpoint(const std_msgs::msg::Float64MultiArray::SharedPtr msg);  // cập nhật reference_ runtime
+  rcl_interfaces::msg::SetParametersResult onParamChange(const std::vector<rclcpp::Parameter> & params);
   void onRobotInfo(rclcpp::Client<interbotix_xs_msgs::srv::RobotInfo>::SharedFuture future);
   void onTimer();
 };
