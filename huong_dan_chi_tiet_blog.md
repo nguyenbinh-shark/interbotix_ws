@@ -19,7 +19,7 @@
 ### 1.1. Bối cảnh phần cứng & phần mềm
 - **Robot**: Cánh tay robot 5 bậc tự do Interbotix RX150 dùng động cơ thông minh Dynamixel (XM540 / XM430, Protocol 2.0). Giao tiếp với PC thông qua adapter U2D2 (`/dev/ttyDXL`).
 - **Môi trường**: ROS 2 Humble trên Ubuntu 22.04 LTS.
-- **Triết lý không xâm nhập (Non-invasive design)**: Không sửa đổi mã nguồn gốc (upstream/vendor) của Interbotix. Mọi tính năng fuzzy và bridge được xây dựng biệt lập hoàn toàn trong gói ROS 2 package `fuzzy_controller`.
+- **Triết lý không xâm nhập (Non-invasive design)**: Không sửa đổi mã nguồn gốc (upstream/vendor) của Interbotix. Mọi tính năng fuzzy và bridge được xây dựng biệt lập hoàn toàn trong gói ROS 2 package `rx150_fuzzy_controller`.
 
 ### 1.2. Tại sao lại dùng PWM mode thay vì Position mode mặc định?
 - Mặc định, Dynamixel sử dụng bộ điều khiển PID vị trí **nằm sẵn trong firmware** của động cơ.
@@ -37,7 +37,7 @@
 Mọi luật điều khiển Fuzzy bắt đầu từ file thiết kế `.fis` (MATLAB Fuzzy Inference System format).
 
 ### Bước 2.1: Chỉnh sửa thiết kế Fuzzy
-File nguồn sự thật: `gen_fit_and_3d_graph/fuzzy_type1.fis` hoặc `src/fuzzy_controller/src/fuzzy/fuzzy_type1.fis`.
+File nguồn sự thật: `gen_fit_and_3d_graph/fuzzy_type1.fis` hoặc `src/rx150_fuzzy_controller/src/fuzzy/fuzzy_type1.fis`.
 Định nghĩa:
 - **Đầu vào 1 (`e`)**: Sai số vị trí $e \in [-1, 1]$ (đã chuẩn hóa qua $K_e$).
 - **Đầu vào 2 (`ed`)**: Vận tốc sai số $\dot{e} \in [-1, 1]$ (đã chuẩn hóa qua $K_{ed}$).
@@ -55,7 +55,7 @@ cd ~/interbotix_ws/gen_fit_and_3d_graph
 python3 fis2c.py fuzzy_type1.fis
 
 # 2. Hoặc dùng script đồng bộ tự động vào ROS 2 package:
-cd ~/interbotix_ws/src/fuzzy_controller/src/fuzzy
+cd ~/interbotix_ws/src/rx150_fuzzy_controller/src/fuzzy
 ./regenerate.sh
 ```
 
@@ -134,7 +134,7 @@ Sau khi đã verified luật fuzzy an toàn trên khớp đơn, tiến hành ch�
 Sử dụng file launch chính:
 ```bash
 source ~/interbotix_ws/install/setup.bash
-ros2 launch fuzzy_controller fuzzy_control.launch.py
+ros2 launch rx150_fuzzy_controller fuzzy_control.launch.py
 ```
 *Tự động thực thi:*
 1. Khởi động `xs_sdk` driver với file cấu hình động cơ `rx150_fuzzy.yaml`.
@@ -148,7 +148,7 @@ Dự án có sẵn ứng dụng GUI Tkinter giao tiếp trực tiếp qua ROS 2 
 **Chạy GUI trên Terminal:**
 ```bash
 source ~/interbotix_ws/install/setup.bash
-ros2 run fuzzy_controller fuzzy_gui
+ros2 run rx150_fuzzy_controller fuzzy_gui
 ```
 
 **Tính năng trên GUI:**
@@ -190,13 +190,13 @@ Trước khi chạy toàn bộ hệ thống MoveIt cồng kềnh, bạn nên ki�
 **Chạy kiểm thử (2 Terminal):**
 ```bash
 # Terminal 1: Chạy driver và bộ điều khiển Fuzzy
-ros2 launch fuzzy_controller fuzzy_control.launch.py
+ros2 launch rx150_fuzzy_controller fuzzy_control.launch.py
 
 # Terminal 2: Chạy node test bridge (giao tiếp qua action server)
-ros2 run fuzzy_controller fuzzy_bridge_test
+ros2 run rx150_fuzzy_controller fuzzy_bridge_test
 
 # (Tùy chọn) Chạy test với góc lệch tùy chỉnh ở khớp khác
-ros2 run fuzzy_controller fuzzy_bridge_test -- 0.05 elbow
+ros2 run rx150_fuzzy_controller fuzzy_bridge_test -- 0.05 elbow
 ```
 *Kết quả:* Script sẽ gửi liên tiếp 2 Goal (zero-motion và small-motion) để test tracking error. Nếu Terminal 2 báo `TẤT CẢ PASS ✓`, hệ thống Action Server của bridge đã sẵn sàng cho MoveIt. Đóng Terminal 1 trước khi sang Bước 5.3.
 
@@ -207,7 +207,7 @@ Chạy file launch tích hợp duy nhất:
 source ~/interbotix_ws/install/setup.bash
 
 # Launch đầy đủ Driver + Fuzzy Node + Bridge + MoveGroup + RViz2
-ros2 launch fuzzy_controller fuzzy_moveit.launch.py
+ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py
 ```
 
 ### Bước 5.4: Khởi động tích hợp MoveIt + FF Controller (Bộ điều khiển thứ 2)
@@ -215,13 +215,13 @@ Dự án hỗ trợ **2 bộ điều khiển** có thể chạy thay thế nhau 
 
 | Bộ điều khiển | Package | Feedforward | Ưu điểm |
 |---|---|---|---|
-| **Fuzzy + Gravity Comp** | `fuzzy_controller` | Bù trọng lực Pinocchio (RNEA) | Giữ vị trí tĩnh tốt nhờ bù trọng lực model-based |
+| **Fuzzy + Gravity Comp** | `rx150_fuzzy_controller` | Bù trọng lực Pinocchio (RNEA) | Giữ vị trí tĩnh tốt nhờ bù trọng lực model-based |
 | **Fuzzy + FF vel/acc** | `rx150_ff_controller` | $K_v \cdot \dot{q}_{profile} + K_a \cdot \ddot{q}_{profile}$ | Không cần URDF/Pinocchio, bám quỹ đạo động tốt |
 
 ```bash
 source ~/interbotix_ws/install/setup.bash
 
-# Chạy với FF controller (thay thế fuzzy_controller)
+# Chạy với FF controller (thay thế rx150_fuzzy_controller)
 ros2 launch rx150_ff_controller ff_moveit.launch.py
 ```
 
@@ -254,14 +254,14 @@ Script ghi bag **tự thêm timestamp** vào tên file và lưu vào thư mục 
 
 ```bash
 # Terminal 1: Chạy hệ thống robot
-ros2 launch fuzzy_controller fuzzy_control.launch.py
+ros2 launch rx150_fuzzy_controller fuzzy_control.launch.py
 
 # Terminal 2: Record data (tên bag tự sinh: step_20260813_134100)
-cd ~/interbotix_ws/src/fuzzy_controller
+cd ~/interbotix_ws/src/rx150_fuzzy_controller
 ./config/fuzzy_record.sh step
 
 # Ctrl+C để dừng ghi → bag lưu tại:
-# ~/interbotix_ws/src/fuzzy_controller/data/step_20260813_134100/
+# ~/interbotix_ws/src/rx150_fuzzy_controller/data/step_20260813_134100/
 ```
 
 **So sánh A/B giữa 2 chế độ (Step vs Profile):**
@@ -275,8 +275,8 @@ cd ~/interbotix_ws/src/fuzzy_controller
 
 **So sánh A/B giữa 2 controller (Fuzzy vs FF):**
 ```bash
-# Lần 1: Chạy fuzzy_controller + record
-cd ~/interbotix_ws/src/fuzzy_controller
+# Lần 1: Chạy rx150_fuzzy_controller + record
+cd ~/interbotix_ws/src/rx150_fuzzy_controller
 ./config/fuzzy_record.sh fuzzy_gravity
 
 # Lần 2: Đổi sang ff_controller (cần tạo ff_record.sh tương tự)
@@ -315,10 +315,10 @@ PlotJuggler **có khả năng export dữ liệu ra CSV** thông qua plugin Tool
 **Bước 1: Mở PlotJuggler với Layout sẵn**
 ```bash
 # Terminal 1: Chạy hệ thống robot
-ros2 launch fuzzy_controller fuzzy_control.launch.py
+ros2 launch rx150_fuzzy_controller fuzzy_control.launch.py
 
-# Terminal 2: Mở PlotJuggler
-ros2 launch fuzzy_controller fuzzy_plot.launch.py
+# Terminal 2: Mở PlotJuggler (layout dùng chung trong data_analysis/)
+ros2 run plotjuggler plotjuggler -l ~/interbotix_ws/data_analysis/layouts/fuzzy_plotjuggler_layout.xml
 ```
 
 **Bước 2: Kết nối dữ liệu live**
@@ -332,7 +332,7 @@ ros2 launch fuzzy_controller fuzzy_plot.launch.py
 3. Nút **Start** ($\blacktriangleright$): Các đồ thị trên 4 tab (Position, Velocity, PWM, Error) tự động hiển thị dữ liệu sóng real-time.
 
 **Bước 3: Load bag đã ghi để so sánh A/B offline**
-1. Menu **Data** → **Load** → Chọn file `.db3` trong thư mục bag đã ghi (`fuzzy_controller/data/step_*/`, `fuzzy_controller/data/profile_*/`).
+1. Menu **Data** → **Load** → Chọn file `.db3` trong thư mục bag đã ghi (`rx150_fuzzy_controller/data/step_*/`, `rx150_fuzzy_controller/data/profile_*/`).
 2. Có thể load **nhiều bag cùng lúc** → overlay các đường đồ thị để so sánh trực quan.
 
 **Bước 4: Export CSV từ PlotJuggler (nếu cần cho MATLAB/Python)**
@@ -348,7 +348,7 @@ ros2 launch fuzzy_controller fuzzy_plot.launch.py
 Sau khi chạy thí nghiệm, dữ liệu được tổ chức vào các thư mục `data/` chuyên dụng:
 
 ```
-fuzzy_controller/
+rx150_fuzzy_controller/
 └── data/                           ← ros2 bag recordings
     ├── step_20260813_134100/        ← bag thí nghiệm step
     ├── profile_20260813_140200/     ← bag thí nghiệm profile
@@ -369,20 +369,20 @@ rx150_perception/
 
 | Công việc | Dòng lệnh Terminal |
 |---|---|
-| **Build Fuzzy Package** | `cd ~/interbotix_ws && colcon build --packages-select fuzzy_controller && source install/setup.bash` |
+| **Build Fuzzy Package** | `cd ~/interbotix_ws && colcon build --packages-select rx150_fuzzy_controller && source install/setup.bash` |
 | **Build FF Package** | `cd ~/interbotix_ws && colcon build --packages-select rx150_ff_controller && source install/setup.bash` |
-| **Sinh lại code C từ .fis** | `cd ~/interbotix_ws/src/fuzzy_controller/src/fuzzy && ./regenerate.sh` |
+| **Sinh lại code C từ .fis** | `cd ~/interbotix_ws/src/rx150_fuzzy_controller/src/fuzzy && ./regenerate.sh` |
 | **Xem mặt 3D Web** | `cd ~/interbotix_ws/gen_fit_and_3d_graph && python3 gen_surface.py && python3 build_artifact.py && xdg-open fuzzy_surface.html` |
 
 ### 7.2. Chạy hệ thống
 
 | Công việc | Dòng lệnh Terminal |
 |---|---|
-| **Launch Fuzzy Controller** | `ros2 launch fuzzy_controller fuzzy_control.launch.py` |
-| **Launch MoveIt + Fuzzy** | `ros2 launch fuzzy_controller fuzzy_moveit.launch.py` |
+| **Launch Fuzzy Controller** | `ros2 launch rx150_fuzzy_controller fuzzy_control.launch.py` |
+| **Launch MoveIt + Fuzzy** | `ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py` |
 | **Launch MoveIt + FF** | `ros2 launch rx150_ff_controller ff_moveit.launch.py` |
-| **Mở GUI Tune Tkinter** | `ros2 run fuzzy_controller fuzzy_gui` |
-| **Test Bridge Độc Lập** | `ros2 run fuzzy_controller fuzzy_bridge_test` |
+| **Mở GUI Tune Tkinter** | `ros2 run rx150_fuzzy_controller fuzzy_gui` |
+| **Test Bridge Độc Lập** | `ros2 run rx150_fuzzy_controller fuzzy_bridge_test` |
 | **Test an toàn Khớp 5** | `cd ~/interbotix_ws && gcc -shared -fPIC -O2 -o /tmp/fuzzy_type1.so gen_fit_and_3d_graph/fuzzy_type1.c -lm && python3 test_joint5.py` |
 | **Vẽ đồ thị Overlay Runs** | `cd ~/interbotix_ws && python3 plot_runs.py` |
 
@@ -390,12 +390,12 @@ rx150_perception/
 
 | Công việc | Dòng lệnh Terminal |
 |---|---|
-| **Ghi ROS2 Bag Fuzzy** | `cd ~/interbotix_ws/src/fuzzy_controller && ./config/fuzzy_record.sh my_experiment` |
+| **Ghi ROS2 Bag Fuzzy** | `cd ~/interbotix_ws/src/rx150_fuzzy_controller && ./config/fuzzy_record.sh my_experiment` |
 | **Pick-Place MoveIt (có ghi CSV)** | `ros2 run rx150_perception test_pick_place_moveit.py` |
 | **Pick-Place MoveIt (không ghi)** | `ros2 run rx150_perception test_pick_place_moveit.py --no-save` |
 | **Pick-Place A→B (có ghi CSV)** | `ros2 run rx150_perception test_pick_place_A_to_B.py` |
 | **Pick-Place A→B (không ghi)** | `ros2 run rx150_perception test_pick_place_A_to_B.py --no-save` |
-| **Mở PlotJuggler Layout** | `ros2 launch fuzzy_controller fuzzy_plot.launch.py` |
+| **Mở PlotJuggler Layout** | `ros2 run plotjuggler plotjuggler -l ~/interbotix_ws/data_analysis/layouts/fuzzy_plotjuggler_layout.xml` |
 
 ### 7.4. Tune & Monitor
 

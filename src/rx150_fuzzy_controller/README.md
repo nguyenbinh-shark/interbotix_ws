@@ -12,18 +12,18 @@ Package này cung cấp hệ thống điều khiển mờ (Fuzzy Logic Controlle
 3. **Tích hợp MoveIt 2 (Trajectory Bridge)**:
    - Node cầu nối `fuzzy_trajectory_bridge` nội suy quỹ đạo an toàn từ MoveIt 2 (TOTP) và truyền thành các setpoint liên tục cho bộ Fuzzy.
 4. **Tích hợp Nhận thức không gian 3D (Perception & Obstacle Avoidance)**:
-   - Sẵn sàng cấu hình Octomap (`sensors_3d.yaml`) để đọc luồng PointCloud từ Camera 3D (ví dụ: Intel RealSense). MoveIt có thể tự động lập quỹ đạo lách qua các vật cản động.
+   - Sẵn sàng cấu hình Octomap (`sensors_3d.yaml` từ `rx150_motion_common`) để đọc luồng PointCloud từ Camera 3D (ví dụ: Intel RealSense). MoveIt có thể tự động lập quỹ đạo lách qua các vật cản động.
 5. **Giao diện Tune tham số trực tiếp (GUI)**:
    - Ứng dụng `fuzzy_gui` (Tkinter) cho phép tinh chỉnh Gains ($K_e, K_{ed}, K_u, u_{max}$) theo thời gian thực (Live-tuning) và lưu cấu hình trực tiếp vào YAML.
 6. **Kiểm thử an toàn & Trực quan hoá**:
    - Cung cấp script test độc lập cho khớp 5 (không chịu tải) để tìm Gain an toàn.
-   - Theo dõi dữ liệu vị trí, sai số, PWM tức thời thông qua PlotJuggler và hỗ trợ thu thập dữ liệu ROS 2 bag để so sánh A/B.
+   - Hỗ trợ thu thập dữ liệu ROS 2 bag để so sánh A/B. Trực quan hoá realtime và offline qua module dùng chung [data_analysis/](../../../data_analysis/).
 
 ## Cấu trúc thư mục (Packages)
 
-- `config/`: Chứa các file YAML cấu hình gain (`fuzzy_gains.yaml`), cấu hình động cơ (`rx150_fuzzy.yaml`) và layout PlotJuggler.
-- *Lưu ý:* phần nhận diện (YOLO/gesture/PCL), camera driver, hand-eye calibration và `sensors_3d.yaml` (Octomap) đã được tách sang package `rx150_perception`. `fuzzy_moveit.launch.py` chỉ include/`load_yaml` từ `rx150_perception`.
-- `launch/`: Các file khởi động tích hợp (chạy độc lập, chạy với MoveIt, chạy PlotJuggler).
+- `config/`: Chứa các file YAML cấu hình gain (`fuzzy_gains.yaml`) và cấu hình động cơ (`rx150_fuzzy.yaml`).
+- *Lưu ý:* phần nhận diện (YOLO/gesture/PCL), camera driver, hand-eye calibration đã được tách sang package `rx150_perception`. `sensors_3d.yaml` (Octomap config) hiện ở `rx150_motion_common`, `fuzzy_moveit.launch.py` load_yaml từ đó.
+- `launch/`: Các file khởi động tích hợp (chạy độc lập, chạy với MoveIt).
 - `scripts/`: Chứa mã nguồn Python cho GUI (`fuzzy_gui`), Node cầu nối quỹ đạo (`fuzzy_trajectory_bridge`) và kịch bản test (`fuzzy_bridge_test`).
 - `src/`: Mã nguồn C++ Node chính (`fuzzy_node.cpp`) và thư viện mã C sinh từ FIS (`src/fuzzy/`).
 
@@ -43,11 +43,12 @@ ros2 run fuzzy_controller fuzzy_gui
 - Sử dụng tab **Setpoint** để điều khiển robot thủ công.
 - Sử dụng tab **Gains** để chỉnh sửa và **Lưu vào yaml** các thông số PID/Fuzzy.
 
-### 3. Mở PlotJuggler theo dõi đồ thị
+### 3. Trực quan hoá dữ liệu
+PlotJuggler và các công cụ vẽ đồ thị được quản lý tập trung tại [data_analysis/](../../../data_analysis/). Xem hướng dẫn tại đó.
 ```bash
-ros2 launch fuzzy_controller fuzzy_plot.launch.py
+# Mở PlotJuggler với layout fuzzy
+ros2 run plotjuggler plotjuggler -l ~/interbotix_ws/data_analysis/layouts/fuzzy_plotjuggler_layout.xml
 ```
-- Trên PlotJuggler, chọn Streaming -> ROS2 Topic Subscriber và Add các topic trong namespace `/rx150/fuzzy/` để xem đồ thị realtime.
 
 ## Thông tin chi tiết
-Để xem hướng dẫn chuyên sâu về việc thiết kế luật mờ, cách sinh mã C từ FIS, kiểm thử an toàn từng khớp và so sánh hiệu suất qua bag file, vui lòng đọc tài liệu hướng dẫn kỹ thuật: [huong_dan_chi_tiet_blog.md](../../huong_dan_chi_tiet_blog.md).
+Để xem hướng dẫn chuyên sâu về việc thiết kế luật mờ, cách sinh mã C từ FIS, kiểm thử an toàn từng khớp và so sánh hiệu suất qua bag file, vui lòng đọc tài liệu hướng dẫn kỹ thuật: [huong_dan_chi_tiet_blog.md](../../../huong_dan_chi_tiet_blog.md).

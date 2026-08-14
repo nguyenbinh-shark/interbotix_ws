@@ -7,7 +7,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 
-# Node nhận diện (Python, chạy như program — giống pattern fuzzy_controller).
+# Node nhận diện (Python, chạy như program — giống pattern rx150_fuzzy_controller).
 # Pick-place đã chuyển sang package riêng rx150_pick_place (Layer 2).
 install(
   PROGRAMS
@@ -16,8 +16,22 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# Install shared utils module để node có thể import.
+install(
+  FILES
+    scripts/rx150_perception_utils.py
+    scripts/__init__.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 install(
   DIRECTORY launch config models
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install requirements.txt để user có thể pip install các pip-only deps (ultralytics, mediapipe).
+install(
+  FILES requirements.txt
   DESTINATION share/${PROJECT_NAME}
 )
 

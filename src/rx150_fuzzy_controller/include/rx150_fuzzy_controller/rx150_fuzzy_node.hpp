@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <ruckig/ruckig.hpp>  // TOTG online: sinh q_ref(t) có v,a giới hạn trước bộ fuzzy
-#include "fuzzy_controller/gravity_comp.hpp"
+#include "rx150_fuzzy_controller/gravity_comp.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/node_interfaces/node_parameters_interface.hpp>

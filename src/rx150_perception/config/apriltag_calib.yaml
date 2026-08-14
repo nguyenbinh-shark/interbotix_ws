@@ -1,4 +1,4 @@
-// AprilTag config cho hand-eye calibration (fuzzy_controller).
+// AprilTag config cho hand-eye calibration (rx150_fuzzy_controller).
 // Dùng cho node apriltag_ros/apriltag_ros_continuous_detector_node,
 // được launch trong handeye_calibrate.launch.py.
 //

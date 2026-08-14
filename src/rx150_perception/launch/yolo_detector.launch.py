@@ -1,7 +1,7 @@
 # Launch YOLO detector (+ tùy chọn hand_gesture node).
 #
 # Yêu cầu camera + TF đang chạy (từ fuzzy_moveit.launch.py use_camera:=true):
-#   T1: ros2 launch fuzzy_controller fuzzy_moveit.launch.py \
+#   T1: ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py \
 #           use_camera:=true use_camera_static_tf:=true use_handeye_publisher:=false
 #   T2: ros2 launch rx150_perception yolo_detector.launch.py
 #   (bật gesture): ros2 launch rx150_perception yolo_detector.launch.py enable_gesture:=true

@@ -81,9 +81,9 @@ def launch_setup(context, *args, **kwargs):
         'xsarm_control.launch.py')
 
     motor_configs = os.path.join(
-        get_package_share_directory('fuzzy_controller'),
+        get_package_share_directory('rx150_motion_common'),
         'config',
-        'rx150_fuzzy.yaml')
+        'rx150_motor.yaml')
 
     xsarm = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(xsarm_launch),
@@ -100,12 +100,12 @@ def launch_setup(context, *args, **kwargs):
     # 2. fuzzy_node (PWM closed-loop controller)                         #
     # ------------------------------------------------------------------ #
     fuzzy_params = os.path.join(
-        get_package_share_directory('fuzzy_controller'),
+        get_package_share_directory('rx150_fuzzy_controller'),
         'config',
-        'fuzzy_gains.yaml')
+        'rx150_fuzzy_gains.yaml')
 
     fuzzy_node = Node(
-        package='fuzzy_controller',
+        package='rx150_fuzzy_controller',
         executable='fuzzy_node',
         name='fuzzy_node',
         namespace=robot_name,
@@ -119,11 +119,12 @@ def launch_setup(context, *args, **kwargs):
     # 3. fuzzy_trajectory_bridge (FollowJointTrajectory action server)   #
     # ------------------------------------------------------------------ #
     bridge_node = Node(
-        package='fuzzy_controller',
-        executable='fuzzy_trajectory_bridge',
+        package='rx150_motion_common',
+        executable='rx150_trajectory_bridge.py',
         name='fuzzy_trajectory_bridge',
         namespace=robot_name,
-        output='screen')
+        output='screen',
+        parameters=[{'setpoint_topic': 'fuzzy/setpoint'}])
 
     # ------------------------------------------------------------------ #
     # 3b. gripper_trajectory_bridge (PWM FJT server cho MoveIt)          #
@@ -133,8 +134,8 @@ def launch_setup(context, *args, **kwargs):
     #     Gripper motor vẫn PWM mode (chung bus với arm group ở PWM).     #
     # ------------------------------------------------------------------ #
     gripper_bridge_node = Node(
-        package='fuzzy_controller',
-        executable='gripper_trajectory_bridge',
+        package='rx150_fuzzy_controller',
+        executable='rx150_gripper_trajectory_bridge.py',
         name='gripper_trajectory_bridge',
         namespace=robot_name,
         output='screen')
@@ -219,7 +220,7 @@ def launch_setup(context, *args, **kwargs):
         'publish_transforms_updates': True,
     }
 
-    sensor_parameters = load_yaml('rx150_perception', 'config/sensors_3d.yaml')
+    sensor_parameters = load_yaml('rx150_motion_common', 'config/sensors_3d.yaml')
 
     remappings = [
         (

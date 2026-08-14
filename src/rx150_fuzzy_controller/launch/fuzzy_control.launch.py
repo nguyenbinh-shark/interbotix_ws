@@ -25,9 +25,9 @@ def generate_launch_description():
         'xsarm_control.launch.py')
 
     motor_configs = os.path.join(
-        get_package_share_directory('fuzzy_controller'),
+        get_package_share_directory('rx150_motion_common'),
         'config',
-        'rx150_fuzzy.yaml')
+        'rx150_motor.yaml')
 
     xsarm = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(xsarm_launch),
@@ -42,12 +42,12 @@ def generate_launch_description():
 
     # Action 2 — fuzzy controller node (namespace 'rx150' -> relative topics become /rx150/...).
     fuzzy_params = os.path.join(
-        get_package_share_directory('fuzzy_controller'),
+        get_package_share_directory('rx150_fuzzy_controller'),
         'config',
-        'fuzzy_gains.yaml')
+        'rx150_fuzzy_gains.yaml')
 
     fuzzy_node = Node(
-        package='fuzzy_controller',
+        package='rx150_fuzzy_controller',
         executable='fuzzy_node',
         name='fuzzy_node',
         namespace='rx150',

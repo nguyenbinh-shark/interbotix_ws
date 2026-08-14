@@ -5,7 +5,7 @@
 # => Phải chạy fuzzy_moveit.launch.py ở terminal khác TRƯỚC khi launch file này.
 #
 # Quy trình:
-#   T1:  ros2 launch fuzzy_controller fuzzy_moveit.launch.py \
+#   T1:  ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py \
 #            use_camera:=true use_camera_static_tf:=false use_moveit_rviz:=true
 #        (use_camera_static_tf:=false để easy_handeye2 dummy sở hữu world->camera_link)
 #   T2:  ros2 launch rx150_perception handeye_calibrate.launch.py

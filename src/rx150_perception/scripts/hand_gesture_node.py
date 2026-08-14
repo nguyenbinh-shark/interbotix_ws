@@ -30,9 +30,16 @@ import tf2_geometry_msgs
 try:
     import mediapipe as mp
 except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        'mediapipe chưa cài. Chạy: pip install --user -r src/rx150_perception/requirements.txt'
-    ) from exc
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        req_path = os.path.join(get_package_share_directory('rx150_perception'), 'requirements.txt')
+        raise ImportError(
+            f'mediapipe chưa cài. Chạy: pip install --user -r {req_path}'
+        ) from exc
+    except ImportError:
+        raise ImportError(
+            'mediapipe chưa cài. Chạy: pip install --user -r src/rx150_perception/requirements.txt'
+        ) from exc
 
 
 def _point_ray_distance(p, a, b):

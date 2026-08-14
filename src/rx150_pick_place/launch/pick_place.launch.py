@@ -1,7 +1,7 @@
 # Launch Layer 1 (YOLO + gesture) + Layer 2 (node quyết định pick-place MoveIt).
 #
 # Yêu cầu T1 đã chạy (motion stack + camera + hand-eye):
-#   ros2 launch fuzzy_controller fuzzy_moveit.launch.py \
+#   ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py \
 #       use_camera:=true rs_camera_pointcloud_enable:=true \
 #       use_camera_static_tf:=false use_handeye_publisher:=true
 #

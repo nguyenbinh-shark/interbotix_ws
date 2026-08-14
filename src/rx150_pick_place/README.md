@@ -21,20 +21,20 @@ D435 ──rs_launch──► /camera/camera/{color, aligned_depth_to_color, dep
         │   gửi /move_action (interbotix_arm)   ──► move_group OMPL ──► arm_bridge ──► fuzzy_node ──► xs_sdk
         │   gửi gripper goal (interbotix_gripper) ──► gripper_bridge ──► xs_sdk
         │   startup: add box bàn qua /apply_planning_scene
-[L3 fuzzy_controller + MoveIt]  motion (hoạch định + thực thi PWM)
+[L3 rx150_fuzzy_controller + MoveIt]  motion (hoạch định + thực thi PWM)
 ```
 
 | Layer | Package | Vai trò |
 |---|---|---|
 | L1 Nhận diện | `rx150_perception` | YOLO seg + MediaPipe → pose vật + chọn vật bằng tay |
 | **L2 Quyết định** | **`rx150_pick_place`** | **chọn grasp, place, gọi MoveIt, add box bàn** |
-| L3 Motion | `fuzzy_controller` + MoveIt config | `move_group` OMPL + 2 bridge + `fuzzy_node` PWM |
+| L3 Motion | `rx150_fuzzy_controller` + MoveIt config | `move_group` OMPL + 2 bridge + `fuzzy_node` PWM |
 
 ## Cách chạy (2 terminal, đã `source ~/interbotix_ws/source_all.sh`)
 
 **T1 — motion stack + camera + hand-eye:**
 ```bash
-ros2 launch fuzzy_controller fuzzy_moveit.launch.py \
+ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py \
     use_camera:=true rs_camera_pointcloud_enable:=true \
     use_camera_static_tf:=false use_handeye_publisher:=true
 ```
@@ -91,7 +91,7 @@ Yaw do detector ước lượng **không dùng được** làm tool rotation →
 - **Box bàn:** node gọi `/apply_planning_scene` (ADD 1 `CollisionObject` box ở `world`) khi pick đầu.
   TUNE `table_z`/`table_size_z` để **đỉnh box ≤ mặt bàn**, và grasp z giữ ngón TRÊN box — nếu không
   grasp pose self-collision → mọi plan fail.
-- **OctoMap:** từ `/camera/camera/depth/color/points` (`rx150_perception/config/sensors_3d.yaml`),
+- **OctoMap:** từ `/camera/camera/depth/color/points` (`rx150_motion_common/config/sensors_3d.yaml`),
   nạp vào `move_group`. Cần camera publish pointcloud (T1).
 
 ## Build

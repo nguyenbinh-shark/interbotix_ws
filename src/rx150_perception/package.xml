@@ -3,7 +3,7 @@
 <package format="3">
   <name>rx150_perception</name>
   <version>0.1.0</version>
-  <description>Nhận diện rx150: YOLOv8 segmentation + cử chỉ tay MediaPipe + PCL clustering + hand-eye calibration. Tách từ fuzzy_controller.</description>
+  <description>Nhận diện rx150: YOLOv8 segmentation + cử chỉ tay MediaPipe + PCL clustering + hand-eye calibration. Tách từ rx150_fuzzy_controller.</description>
   <maintainer email="todo@todo.todo">hust</maintainer>
   <license>BSD</license>
 
@@ -19,7 +19,7 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
 
-  <!-- Interbotix SDK + perception + moveit (cho pick_place_rx150.py) -->
+  <!-- Interbotix SDK + perception + moveit (cho handeye launches và pick_place) -->
   <exec_depend>interbotix_common_modules</exec_depend>
   <exec_depend>interbotix_xs_modules</exec_depend>
   <exec_depend>interbotix_perception_modules</exec_depend>

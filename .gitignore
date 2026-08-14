@@ -21,3 +21,6 @@ __pycache__/
 
 # Generated demo binary
 /gen_fit_and_3d_graph/fuzzy_type1_demo
+# Added test_detection/*.log and profile/ to gitignore
+test_detection/*.log
+profile/

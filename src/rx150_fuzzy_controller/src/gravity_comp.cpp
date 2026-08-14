@@ -1,4 +1,4 @@
-#include "fuzzy_controller/gravity_comp.hpp"
+#include "rx150_fuzzy_controller/gravity_comp.hpp"
 #include <pinocchio/parsers/urdf.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
 #include <iostream>

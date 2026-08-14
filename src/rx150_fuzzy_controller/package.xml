@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>fuzzy_controller</name>
+  <name>rx150_fuzzy_controller</name>
   <version>0.1.0</version>
-  <description>Type-1 fuzzy logic controller for the Interbotix rx150 arm.</description>
+  <description>Type-1 fuzzy logic controller with gravity compensation (Pinocchio) for the Interbotix rx150 arm. Engine Mamdani riêng, body node riêng, KHÔNG ghép cặp với ff_node.</description>
   <maintainer email="todo@todo.todo">hust</maintainer>
   <license>BSD</license>
+
+  <!-- Runtime: infra + tool từ rx150_motion_common (bridge, GUI, motor yaml, env-hook) -->
+  <exec_depend>rx150_motion_common</exec_depend>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>

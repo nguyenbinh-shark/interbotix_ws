@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Source đủ 4 layer để build/run stack fuzzy_controller + camera + hand-eye.
+# Source đủ 4 layer để build/run stack rx150_fuzzy_controller + camera + hand-eye.
 # Dùng: source ~/interbotix_ws/source_all.sh
 #
 # Thứ tự: ROS underlay -> apriltag_ws -> easy_handeye2_ws -> interbotix_ws

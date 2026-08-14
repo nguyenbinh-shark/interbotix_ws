@@ -13,9 +13,9 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <exec_depend>std_srvs</exec_depend>
   <exec_depend>shape_msgs</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>interbotix_xs_msgs</exec_depend>
 
   <!-- Interbotix SDK: chỉ dùng InterbotixManipulatorXS làm IK-oracle (execute=False) -->
   <exec_depend>interbotix_common_modules</exec_depend>

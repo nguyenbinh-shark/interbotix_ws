@@ -12,7 +12,7 @@
 #include "interbotix_xs_msgs/srv/robot_info.hpp"
 #include "interbotix_xs_msgs/srv/operating_modes.hpp"
 #include "interbotix_xs_msgs/srv/torque_enable.hpp"
-#include "fuzzy_controller/fuzzy_node.hpp"
+#include "rx150_fuzzy_controller/rx150_fuzzy_node.hpp"
 #include "fuzzy_type1.h"   // extern "C": float fuzzy_type1_eval(float e, float ed)
 
 FuzzyNode::FuzzyNode() : rclcpp::Node("fuzzy_node") {

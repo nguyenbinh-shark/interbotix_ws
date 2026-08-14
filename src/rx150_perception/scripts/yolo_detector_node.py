@@ -30,9 +30,17 @@ import tf2_geometry_msgs
 try:
     from ultralytics import YOLO
 except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        'ultralytics chưa cài. Chạy: pip install --user -r src/rx150_perception/requirements.txt'
-    ) from exc
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        req_path = os.path.join(get_package_share_directory('rx150_perception'), 'requirements.txt')
+        raise ImportError(
+            f'ultralytics chưa cài. Chạy: pip install --user -r {req_path}'
+        ) from exc
+    except ImportError:
+        # Fallback nếu ament_index_python không available (có thể xảy ra khi chạy trong test)
+        raise ImportError(
+            'ultralytics chưa cài. Chạy: pip install --user -r src/rx150_perception/requirements.txt'
+        ) from exc
 
 
 def ema(prev, new, alpha):
@@ -81,9 +89,16 @@ class YoloDetectorNode(Node):
         self._rolls = {}  # class name -> EMA yaw (base frame)
 
         # --- pubs ---
-        self.pose_pub = self.create_publisher(PoseArray, '~/detected_objects', 10)
-        self.cls_pub = self.create_publisher(StringMultiArray, '~/class_names', 10)
-        self.img_pub = self.create_publisher(Image, '~/debug/image_raw', 10)
+        self.pose_pub = self.create_publisher(PoseArray, '/yolo/detected_objects', 10)
+        self.cls_pub = self.create_publisher(StringMultiArray, '/yolo/class_names', 10)
+
+        # Debug image: gate sau param publish_debug_image (mặc định false để giảm cost)
+        self.declare_parameter('publish_debug_image', False)
+        self._publish_debug = self.get_parameter('publish_debug_image').value
+        if self._publish_debug:
+            self.img_pub = self.create_publisher(Image, '/yolo/debug/image_raw', 10)
+        else:
+            self.img_pub = None
 
         # --- subs ---
         self.create_subscription(
@@ -244,10 +259,12 @@ class YoloDetectorNode(Node):
             self.pose_pub.publish(pa)
             self.cls_pub.publish(StringMultiArray(data=classes))
 
-        try:
-            self.img_pub.publish(self.bridge.cv2_to_imgmsg(annotated, 'bgr8'))
-        except Exception:  # noqa: BLE001
-            pass
+        # Publish debug image (nếu được bật) — cv2_to_imgmsg cost cao
+        if self._publish_debug and self.img_pub is not None:
+            try:
+                self.img_pub.publish(self.bridge.cv2_to_imgmsg(annotated, 'bgr8'))
+            except Exception:  # noqa: BLE001
+                pass
 
 
 def main(args=None):

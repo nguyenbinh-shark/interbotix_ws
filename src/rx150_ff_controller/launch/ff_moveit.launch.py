@@ -81,9 +81,9 @@ def launch_setup(context, *args, **kwargs):
         'xsarm_control.launch.py')
 
     motor_configs = os.path.join(
-        get_package_share_directory('rx150_ff_controller'),
+        get_package_share_directory('rx150_motion_common'),
         'config',
-        'rx150_ff.yaml')
+        'rx150_motor.yaml')
 
     xsarm = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(xsarm_launch),
@@ -102,7 +102,7 @@ def launch_setup(context, *args, **kwargs):
     ff_params = os.path.join(
         get_package_share_directory('rx150_ff_controller'),
         'config',
-        'ff_gains.yaml')
+        'rx150_ff_gains.yaml')
 
     ff_node = Node(
         package='rx150_ff_controller',
@@ -118,11 +118,12 @@ def launch_setup(context, *args, **kwargs):
     # 3. ff_trajectory_bridge (FollowJointTrajectory action server)      #
     # ------------------------------------------------------------------ #
     bridge_node = Node(
-        package='rx150_ff_controller',
-        executable='ff_trajectory_bridge',
+        package='rx150_motion_common',
+        executable='rx150_trajectory_bridge.py',
         name='ff_trajectory_bridge',
         namespace=robot_name,
-        output='screen')
+        output='screen',
+        parameters=[{'setpoint_topic': 'ff/setpoint'}])
 
     # ------------------------------------------------------------------ #
     # 4. move_group (MoveIt planning)                                    #
@@ -204,7 +205,7 @@ def launch_setup(context, *args, **kwargs):
         'publish_transforms_updates': True,
     }
 
-    sensor_parameters = load_yaml('rx150_perception', 'config/sensors_3d.yaml')
+    sensor_parameters = load_yaml('rx150_motion_common', 'config/sensors_3d.yaml')
 
     remappings = [
         (

@@ -5,7 +5,7 @@
 # easy_handeye2/handeye_publisher (StaticTransformBroadcaster) để publish TF đó.
 #
 # Chạy (thay cho static_tf hardcode):
-#   ros2 launch fuzzy_controller fuzzy_moveit.launch.py \
+#   ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py \
 #        use_camera_static_tf:=false use_handeye_publisher:=true
 #
 # Lưu ý: 'name' phải khớp với tên đã dùng khi calibration (mặc định rx150_eob).
