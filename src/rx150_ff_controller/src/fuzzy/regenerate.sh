@@ -2,7 +2,7 @@
 set -euo pipefail
 # Workspace root = 4 levels up from src/rx150_ff_controller/src/fuzzy/
 WS_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-GEN_DIR="${GEN_DIR:-${WS_ROOT}/gen_fit_and_3d_graph}"
+GEN_DIR="${GEN_DIR:-${WS_ROOT}/fuzzy_codegen}"
 SRC_FIS="$(dirname "$0")/fuzzy_type1.fis"
 # Verify .fis tồn tại (source of truth cho codegen)
 if [ ! -f "$SRC_FIS" ]; then

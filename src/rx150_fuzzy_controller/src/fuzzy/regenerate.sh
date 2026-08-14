@@ -2,7 +2,7 @@
 set -euo pipefail
 # Workspace root = 4 levels up from src/rx150_fuzzy_controller/src/fuzzy/
 WS_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-GEN_DIR="${GEN_DIR:-${WS_ROOT}/gen_fit_and_3d_graph}"
+GEN_DIR="${GEN_DIR:-${WS_ROOT}/fuzzy_codegen}"
 SRC_FIS="$(dirname "$0")/fuzzy_type1.fis"
 cp "$SRC_FIS" "$GEN_DIR/fuzzy_type1.fis"
 ( cd "$GEN_DIR" && python3 fis2c.py fuzzy_type1.fis )

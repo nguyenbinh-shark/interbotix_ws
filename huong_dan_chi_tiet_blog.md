@@ -37,7 +37,7 @@
 Mọi luật điều khiển Fuzzy bắt đầu từ file thiết kế `.fis` (MATLAB Fuzzy Inference System format).
 
 ### Bước 2.1: Chỉnh sửa thiết kế Fuzzy
-File nguồn sự thật: `gen_fit_and_3d_graph/fuzzy_type1.fis` hoặc `src/rx150_fuzzy_controller/src/fuzzy/fuzzy_type1.fis`.
+File nguồn sự thật: `fuzzy_codegen/fuzzy_type1.fis` hoặc `src/rx150_fuzzy_controller/src/fuzzy/fuzzy_type1.fis`.
 Định nghĩa:
 - **Đầu vào 1 (`e`)**: Sai số vị trí $e \in [-1, 1]$ (đã chuẩn hóa qua $K_e$).
 - **Đầu vào 2 (`ed`)**: Vận tốc sai số $\dot{e} \in [-1, 1]$ (đã chuẩn hóa qua $K_{ed}$).
@@ -49,7 +49,7 @@ Công cụ `fis2c.py` đọc `.fis` và tự động tạo mã C99 portable mà 
 
 **Thực hiện trên Terminal:**
 ```bash
-cd ~/interbotix_ws/gen_fit_and_3d_graph
+cd ~/interbotix_ws/fuzzy_codegen
 
 # 1. Sinh file fuzzy_type1.h, fuzzy_type1.c và fuzzy_type1_demo.c
 python3 fis2c.py fuzzy_type1.fis
@@ -63,13 +63,13 @@ cd ~/interbotix_ws/src/rx150_fuzzy_controller/src/fuzzy
 Để kiểm tra tính liên tục và độ mượt của mặt điều khiển Fuzzy trước khi nạp lên robot real:
 
 ```bash
-cd ~/interbotix_ws/gen_fit_and_3d_graph
+cd ~/interbotix_ws/fuzzy_codegen
 
 # 1. Tính lưới 2D (e, ed) và xuất surface.json
 python3 gen_surface.py
 
 # 2. Đóng gói thành file HTML 3D tương tác standalone
-python3 build_artifact.py
+python3 build_surface_html.py
 
 # 3. Mở file HTML trên trình duyệt
 xdg-open fuzzy_surface.html
@@ -100,7 +100,7 @@ ros2 launch interbotix_xsarm_control xsarm_control.launch.py robot_model:=rx150 
 
 # Terminal 2: Biên dịch thư viện C tạm và chạy script test khớp 5
 cd ~/interbotix_ws
-gcc -shared -fPIC -O2 -o /tmp/fuzzy_type1.so gen_fit_and_3d_graph/fuzzy_type1.c -lm
+gcc -shared -fPIC -O2 -o /tmp/fuzzy_type1.so fuzzy_codegen/fuzzy_type1.c -lm
 python3 test_joint5.py
 ```
 *Kết quả*: Script xuất log real-time và tự động tạo 2 file kết quả trong thư mục `runs/`:
@@ -373,7 +373,7 @@ rx150_perception/
 | **Build Fuzzy Package** | `cd ~/interbotix_ws && colcon build --packages-select rx150_fuzzy_controller && source install/setup.bash` |
 | **Build FF Package** | `cd ~/interbotix_ws && colcon build --packages-select rx150_ff_controller && source install/setup.bash` |
 | **Sinh lại code C từ .fis** | `cd ~/interbotix_ws/src/rx150_fuzzy_controller/src/fuzzy && ./regenerate.sh` |
-| **Xem mặt 3D Web** | `cd ~/interbotix_ws/gen_fit_and_3d_graph && python3 gen_surface.py && python3 build_artifact.py && xdg-open fuzzy_surface.html` |
+| **Xem mặt 3D Web** | `cd ~/interbotix_ws/fuzzy_codegen && python3 gen_surface.py && python3 build_surface_html.py && xdg-open fuzzy_surface.html` |
 
 ### 7.2. Chạy hệ thống
 
@@ -384,7 +384,7 @@ rx150_perception/
 | **Launch MoveIt + FF** | `ros2 launch rx150_ff_controller ff_moveit.launch.py` |
 | **Mở GUI Tune Tkinter** | `ros2 run rx150_fuzzy_controller fuzzy_gui` |
 | **Test Bridge Độc Lập** | `ros2 run rx150_fuzzy_controller fuzzy_bridge_test` |
-| **Test an toàn Khớp 5** | `cd ~/interbotix_ws && gcc -shared -fPIC -O2 -o /tmp/fuzzy_type1.so gen_fit_and_3d_graph/fuzzy_type1.c -lm && python3 test_joint5.py` |
+| **Test an toàn Khớp 5** | `cd ~/interbotix_ws && gcc -shared -fPIC -O2 -o /tmp/fuzzy_type1.so fuzzy_codegen/fuzzy_type1.c -lm && python3 test_joint5.py` |
 | **Vẽ đồ thị Overlay Runs** | `cd ~/interbotix_ws && python3 plot_runs.py` |
 
 ### 7.3. Thu thập dữ liệu
