@@ -317,6 +317,48 @@ void FuzzyNode::onTimer() {
     current_positions[i] = last_js_.position.size() > idx ? last_js_.position[idx] : 0.0;
   }
 
+  // --- Ruckig Profile Update ---
+  sensor_msgs::msg::JointState ref_msg;
+  ref_msg.header.stamp = stamp;
+  ref_msg.name = joint_names_;
+  ref_msg.position.assign(n, 0.0);
+  ref_msg.velocity.assign(n, 0.0);
+
+  if (enable_profile_ && profile_configured_ && otg_) {
+    if (!profile_seeded_) {
+      for (size_t i = 0; i < kProfileDoF; ++i) {
+        otg_in_.current_position[i] = current_positions[i];
+        otg_in_.current_velocity[i] = 0.0;
+        otg_in_.current_acceleration[i] = 0.0;
+      }
+      profile_seeded_ = true;
+    }
+    auto res = otg_->update(otg_in_, otg_out_);
+    if (res == ruckig::Result::Working || res == ruckig::Result::Finished) {
+      otg_out_.pass_to_input(otg_in_);
+      for (size_t i = 0; i < kProfileDoF; ++i) {
+        q_ref_[i] = otg_out_.new_position[i];
+        qdot_ref_[i] = otg_out_.new_velocity[i];
+      }
+    } else {
+      for (size_t i = 0; i < kProfileDoF; ++i) {
+        q_ref_[i] = reference_[i];
+        qdot_ref_[i] = 0.0;
+      }
+    }
+  } else {
+    for (size_t i = 0; i < kProfileDoF; ++i) {
+      q_ref_[i] = reference_[i];
+      qdot_ref_[i] = 0.0;
+    }
+  }
+
+  for (size_t i = 0; i < n; ++i) {
+    ref_msg.position[i] = (i < kProfileDoF) ? q_ref_[i] : reference_[i];
+    ref_msg.velocity[i] = (i < kProfileDoF) ? qdot_ref_[i] : 0.0;
+  }
+  pub_ref_->publish(ref_msg);
+
   std::vector<double> grav_torques(n, 0.0);
   if (grav_comp_ && enable_gravity_comp_) {
     grav_torques = grav_comp_->compute(current_positions);
@@ -327,8 +369,11 @@ void FuzzyNode::onTimer() {
     const double pos = current_positions[i];
     const double vel = last_js_.velocity.size() > idx ? last_js_.velocity[idx] : 0.0;
 
-    const double e = reference_[i] - pos;
-    const double ed = -vel;
+    const double ref_p = (i < kProfileDoF) ? q_ref_[i] : reference_[i];
+    const double ref_v = (i < kProfileDoF) ? qdot_ref_[i] : 0.0;
+
+    const double e = ref_p - pos;
+    const double ed = ref_v - vel;
     const double en = std::clamp(Ke_[i] * e, -1.0, 1.0);
     const double edn = std::clamp(Ked_[i] * ed, -1.0, 1.0);
 

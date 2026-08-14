@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rx150_ff_controller</name>
+  <version>0.1.0</version>
+  <description>Controller rx150 song song fuzzy_node: fuzzy PD + feedforward vận tốc/gia tốc từ profile Ruckig (KHÔNG bù trọng lực).</description>
+  <maintainer email="todo@todo.todo">hust</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>interbotix_xs_msgs</depend>
+  <depend>ruckig</depend>
+  <!-- KHÔNG pinocchio/urdf: feedforward là gain động học, không cần dynamic model. -->
+
+  <!-- bridge (Python): FollowJointTrajectory action server → setpoint -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
+  <!-- launch bring-up -->
+  <exec_depend>interbotix_xs_modules</exec_depend>
+  <exec_depend>interbotix_xsarm_moveit</exec_depend>
+  <exec_depend>moveit_ros_move_group</exec_depend>
+  <exec_depend>interbotix_xsarm_control</exec_depend>
+  <!-- camera + hand-eye (runtime trong launch, parity với fuzzy_moveit) -->
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>easy_handeye2</exec_depend>
+  <exec_depend>rx150_perception</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export><build_type>ament_cmake</build_type></export>
+</package>

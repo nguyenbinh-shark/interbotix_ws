@@ -59,6 +59,16 @@ def launch_setup(context, *args, **kwargs):
     rviz_config_file_launch_arg = LaunchConfiguration('rviz_config_file')
     robot_description_launch_arg = LaunchConfiguration('robot_description')
 
+    # Camera (RealSense + hand-eye calibration) launch args
+    use_camera_launch_arg = LaunchConfiguration('use_camera')
+    rs_camera_pointcloud_enable_launch_arg = LaunchConfiguration('rs_camera_pointcloud_enable')
+    rs_camera_align_depth_enable_launch_arg = LaunchConfiguration('rs_camera_align_depth_enable')
+    rs_camera_rgb_profile_launch_arg = LaunchConfiguration('rs_camera_rgb_profile')
+    rs_camera_depth_profile_launch_arg = LaunchConfiguration('rs_camera_depth_profile')
+    rs_camera_serial_launch_arg = LaunchConfiguration('rs_camera_serial')
+    use_camera_static_tf_launch_arg = LaunchConfiguration('use_camera_static_tf')
+    use_handeye_publisher_launch_arg = LaunchConfiguration('use_handeye_publisher')
+
     robot_model = robot_model_launch_arg.perform(context)
     robot_name = robot_name_launch_arg.perform(context)
 
@@ -112,6 +122,20 @@ def launch_setup(context, *args, **kwargs):
         package='fuzzy_controller',
         executable='fuzzy_trajectory_bridge',
         name='fuzzy_trajectory_bridge',
+        namespace=robot_name,
+        output='screen')
+
+    # ------------------------------------------------------------------ #
+    # 3b. gripper_trajectory_bridge (PWM FJT server cho MoveIt)          #
+    #     Serve /<robot>/gripper_controller/follow_joint_trajectory      #
+    #     (joint left_finger) → dịch sang effort PWM JointSingleCommand  #
+    #     → xs_sdk. Giúp MoveIt điều khiển được gripper (option B).      #
+    #     Gripper motor vẫn PWM mode (chung bus với arm group ở PWM).     #
+    # ------------------------------------------------------------------ #
+    gripper_bridge_node = Node(
+        package='fuzzy_controller',
+        executable='gripper_trajectory_bridge',
+        name='gripper_trajectory_bridge',
         namespace=robot_name,
         output='screen')
 
@@ -195,7 +219,7 @@ def launch_setup(context, *args, **kwargs):
         'publish_transforms_updates': True,
     }
 
-    sensor_parameters = load_yaml('fuzzy_controller', 'config/sensors_3d.yaml')
+    sensor_parameters = load_yaml('rx150_perception', 'config/sensors_3d.yaml')
 
     remappings = [
         (
@@ -263,16 +287,69 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # ------------------------------------------------------------------ #
-    # 6. Static TF for Camera (Eye-to-hand default)                      #
+    # 6. Camera static TF — hardcoded `world -> camera_link` (Eye-to-hand)
+    #    Dùng làm initial-guess KHI CHƯA calibration. Khi đã có hand-eye
+    #    calibration, bật use_handeye_publisher:=true và use_camera_static_tf:=false
+    #    để tránh 2 publisher cùng frame gây nhảy TF.
     # ------------------------------------------------------------------ #
     static_tf = Node(
+        condition=IfCondition(use_camera_static_tf_launch_arg),
         package='tf2_ros',
         executable='static_transform_publisher',
         name='camera_static_tf',
         arguments=['1.0', '0.0', '1.0', '0', '1.57', '0', 'world', 'camera_link']
     )
 
-    return [xsarm, fuzzy_node, bridge_node, move_group_node, moveit_rviz_node, static_tf]
+    # ------------------------------------------------------------------ #
+    # 7. RealSense camera driver (optional)                              #
+    #    publish_tf:=true → rs driver tự publish chuỗi                    #
+    #    camera_link -> camera_color_frame -> camera_color_optical_frame  #
+    #    (và depth frames). Không cần URDF camera riêng.                  #
+    # ------------------------------------------------------------------ #
+    rs_camera_launch_path = os.path.join(
+        get_package_share_directory('realsense2_camera'),
+        'launch',
+        'rs_launch.py')
+
+    rs_camera = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(rs_camera_launch_path),
+        condition=IfCondition(use_camera_launch_arg),
+        launch_arguments={
+            'camera_name': 'camera',
+            'camera_namespace': 'camera',
+            'pointcloud.enable': rs_camera_pointcloud_enable_launch_arg,
+            'align_depth.enable': rs_camera_align_depth_enable_launch_arg,
+            'rgb_camera.color_profile': rs_camera_rgb_profile_launch_arg,
+            'depth_module.depth_profile': rs_camera_depth_profile_launch_arg,
+            'serial_no': rs_camera_serial_launch_arg,
+            'publish_tf': 'true',
+        }.items())
+
+    # ------------------------------------------------------------------ #
+    # 8. Hand-eye calibration TF publisher (optional)                    #
+    #    Publish calibrated `world -> camera_link` từ easy_handeye2       #
+    #    (xem handeye_publish.launch.py). Mutually exclusive với static_tf.#
+    # ------------------------------------------------------------------ #
+    handeye_publish_launch_path = os.path.join(
+        get_package_share_directory('rx150_perception'),
+        'launch',
+        'handeye_publish.launch.py')
+
+    handeye_publisher = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(handeye_publish_launch_path),
+        condition=IfCondition(use_handeye_publisher_launch_arg))
+
+    return [
+        xsarm,
+        fuzzy_node,
+        bridge_node,
+        gripper_bridge_node,
+        move_group_node,
+        moveit_rviz_node,
+        rs_camera,
+        static_tf,
+        handeye_publisher,
+    ]
 
 
 def generate_launch_description():
@@ -343,6 +420,80 @@ def generate_launch_description():
             description=(
                 'the file path to the custom semantic description file that you would like to '
                 "include in the Interbotix robot's semantic description."
+            ),
+        )
+    )
+
+    # ------------------------------------------------------------------ #
+    # Camera (RealSense + hand-eye calibration) arguments                #
+    # ------------------------------------------------------------------ #
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'use_camera',
+            default_value='true',
+            choices=('true', 'false'),
+            description='launch the RealSense camera driver (realsense2_camera rs_launch).',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'rs_camera_pointcloud_enable',
+            default_value='true',
+            choices=('true', 'false'),
+            description='enable the colored pointcloud stream (rs_launch pointcloud.enable).',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'rs_camera_align_depth_enable',
+            default_value='true',
+            choices=('true', 'false'),
+            description=(
+                'register depth onto color (rs_launch align_depth.enable); required for the '
+                'colored `/depth/color/points` topic used by MoveIt OctoMap and the PCL pipeline.'
+            ),
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'rs_camera_rgb_profile',
+            default_value='640x480x30',
+            description='color stream profile `<W>x<H>x<FPS>` (rs_launch rgb_camera.color_profile).',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'rs_camera_depth_profile',
+            default_value='640x480x30',
+            description='depth stream profile `<W>x<H>x<FPS>` (rs_launch depth_module.depth_profile).',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'rs_camera_serial',
+            default_value='',
+            description='RealSense serial number; leave empty to auto-pick the first device.',
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'use_camera_static_tf',
+            default_value='true',
+            choices=('true', 'false'),
+            description=(
+                'publish the hardcoded `world -> camera_link` static TF as an initial camera pose '
+                'guess. Set to false once a hand-eye calibration is available.'
+            ),
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            'use_handeye_publisher',
+            default_value='false',
+            choices=('true', 'false'),
+            description=(
+                'publish the calibrated `world -> camera_link` TF from easy_handeye2 via '
+                'handeye_publish.launch.py. Mutually exclusive with use_camera_static_tf.'
             ),
         )
     )

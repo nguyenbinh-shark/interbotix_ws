@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rx150_pick_place</name>
+  <version>0.1.0</version>
+  <description>rx150 Layer 2 — QUYẾT ĐỊNH: đọc nhận diện YOLO + cử chỉ tay → gọi MoveIt (move_action) gắp &amp; thả. Tách riêng để 1 package = 1 layer (perception | pick_place | motion).</description>
+  <maintainer email="todo@todo.todo">hust</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- ROS Python runtime + msg -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+
+  <!-- Interbotix SDK: chỉ dùng InterbotixManipulatorXS làm IK-oracle (execute=False) -->
+  <exec_depend>interbotix_common_modules</exec_depend>
+  <exec_depend>interbotix_xs_modules</exec_depend>
+
+  <!-- Launch include yolo_detector.launch.py (Layer 1) -->
+  <exec_depend>rx150_perception</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

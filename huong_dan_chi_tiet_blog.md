@@ -8,8 +8,8 @@
 2. **Quy Trình 1: Sinh Mã C Từ FIS & Trực Quan Hóa Mặt Điều Khiển 3D (Code Generation)**
 3. **Quy Trình 2: Tuning An Toàn Từng Khớp Đơn (Single-Joint Safety Tuning & Overlay)**
 4. **Quy Trình 3: Chạy Fuzzy Controller Toàn Arm & Live Tuning (GUI / CLI)**
-5. **Quy Trình 4: Điều Khiển Hoạch Định Quỹ Đạo Bằng MoveIt 2 & Trajectory Bridge**
-6. **Quy Trình 5: Giám Sát Realtime & Ghi Bag So Sánh A/B (PlotJuggler & Bag Recording)**
+5. **Quy Trình 4: Điều Khiển Hoạch Định Quỹ Đạo Bằng MoveIt 2 & Trajectory Bridge (Fuzzy / FF)**
+6. **Quy Trình 5: Giám Sát Realtime, Ghi Dữ Liệu & So Sánh A/B (PlotJuggler, ROS Bag, CSV)**
 7. **Bảng Cheatsheet Tổng Hợp Lệnh Terminal**
 
 ---
@@ -210,21 +210,109 @@ source ~/interbotix_ws/install/setup.bash
 ros2 launch fuzzy_controller fuzzy_moveit.launch.py
 ```
 
-### Bước 5.4: Thao tác điều khiển trên RViz 2
+### Bước 5.4: Khởi động tích hợp MoveIt + FF Controller (Bộ điều khiển thứ 2)
+Dự án hỗ trợ **2 bộ điều khiển** có thể chạy thay thế nhau tùy mục đích:
+
+| Bộ điều khiển | Package | Feedforward | Ưu điểm |
+|---|---|---|---|
+| **Fuzzy + Gravity Comp** | `fuzzy_controller` | Bù trọng lực Pinocchio (RNEA) | Giữ vị trí tĩnh tốt nhờ bù trọng lực model-based |
+| **Fuzzy + FF vel/acc** | `rx150_ff_controller` | $K_v \cdot \dot{q}_{profile} + K_a \cdot \ddot{q}_{profile}$ | Không cần URDF/Pinocchio, bám quỹ đạo động tốt |
+
+```bash
+source ~/interbotix_ws/install/setup.bash
+
+# Chạy với FF controller (thay thế fuzzy_controller)
+ros2 launch rx150_ff_controller ff_moveit.launch.py
+```
+
+> **Lưu ý**: Chỉ chạy **1 trong 2** controller tại 1 thời điểm. Đóng terminal controller cũ trước khi launch controller mới.
+
+### Bước 5.5: Thao tác điều khiển trên RViz 2
 1. Khi RViz 2 mở ra, nhìn vào khung **MotionPlanning** ở góc trái.
 2. Chọn tab **Planning**.
 3. Kéo con trỏ End-Effector (cầu điều khiển màu cam/xanh) đến vị trí mong muốn trong không gian 3D, hoặc chọn sẵn pose ở menu `Goal State` (VD: `Home`, `Sleep`).
 4. Nút **Plan**: MoveIt tính toán quỹ đạo không va chạm.
-5. Nút **Execute** (hoặc **Plan & Execute**): Quỹ đạo được gửi xuống `fuzzy_trajectory_bridge` → Robot thực hiện chuyển động mượt mà bám theo bằng PWM Fuzzy.
+5. Nút **Execute** (hoặc **Plan & Execute**): Quỹ đạo được gửi xuống `fuzzy_trajectory_bridge` (hoặc `ff_trajectory_bridge`) → Robot thực hiện chuyển động mượt mà bám theo bằng PWM Fuzzy.
 
 ---
 
-## 6. QUY TRÌNH 5: GIÁM SÁT REALTIME & GHI BAG SO SÁNH A/B
+## 6. QUY TRÌNH 5: GIÁM SÁT REALTIME, GHI DỮ LIỆU & SO SÁNH A/B
 
-Để phân tích chất lượng điều khiển (chỉ số overshoot, settling time, tracking error), dự án tích hợp PlotJuggler và script ghi dữ liệu ROS 2 bag.
+Để phân tích chất lượng điều khiển (chỉ số overshoot, settling time, tracking error), dự án hỗ trợ nhiều cách thu thập dữ liệu phù hợp từng mục đích.
 
-### Bước 6.1: Mở PlotJuggler với Layout Nạp Sẵn
+### 6.1. Tổng quan các phương pháp thu thập dữ liệu
 
+| Phương pháp | Dữ liệu thu được | Tự động? | Dùng khi nào |
+|---|---|---|---|
+| **`fuzzy_record.sh`** → ros2 bag | 5 topic controller (reference, error, effort, edot, joint_states) @ 100 Hz | ✅ Hoàn toàn tự động | Ghi đầy đủ data controller để phân tích chuyên sâu |
+| **`test_pick_place_*.py --save-data`** → CSV | Position, Velocity, Effort tất cả joints | ✅ Tự động (tùy chọn bật/tắt) | Ghi data thí nghiệm pick-place |
+| **PlotJuggler** → Toolbox CSV Exporter | Bất kỳ series nào đang hiển thị | ❌ Thủ công qua GUI | Export dữ liệu đã chọn lọc cho paper/report |
+
+### 6.2. Cách 1: Ghi ROS 2 Bag bằng `fuzzy_record.sh` (Khuyến nghị cho nghiên cứu)
+
+Script ghi bag **tự thêm timestamp** vào tên file và lưu vào thư mục `data/` chuyên dụng để không ghi đè lần chạy trước.
+
+```bash
+# Terminal 1: Chạy hệ thống robot
+ros2 launch fuzzy_controller fuzzy_control.launch.py
+
+# Terminal 2: Record data (tên bag tự sinh: step_20260813_134100)
+cd ~/interbotix_ws/src/fuzzy_controller
+./config/fuzzy_record.sh step
+
+# Ctrl+C để dừng ghi → bag lưu tại:
+# ~/interbotix_ws/src/fuzzy_controller/data/step_20260813_134100/
+```
+
+**So sánh A/B giữa 2 chế độ (Step vs Profile):**
+```bash
+# Lần 1: enable_profile: false → nhảy step thô
+./config/fuzzy_record.sh step
+
+# Lần 2: enable_profile: true → qua Ruckig Profile
+./config/fuzzy_record.sh profile
+```
+
+**So sánh A/B giữa 2 controller (Fuzzy vs FF):**
+```bash
+# Lần 1: Chạy fuzzy_controller + record
+cd ~/interbotix_ws/src/fuzzy_controller
+./config/fuzzy_record.sh fuzzy_gravity
+
+# Lần 2: Đổi sang ff_controller (cần tạo ff_record.sh tương tự)
+# Record các topic /rx150/ff/... thay vì /rx150/fuzzy/...
+```
+
+### 6.3. Cách 2: Ghi CSV trong script Pick-Place (cho thí nghiệm gắp-đặt)
+
+Các script pick-place hỗ trợ ghi dữ liệu `joint_states` (Position, Velocity, Effort) ra file CSV với **timestamp tự động**.
+
+```bash
+# Chạy pick-place MoveIt VỚI ghi data (mặc định BẬT)
+ros2 run rx150_perception test_pick_place_moveit.py
+# → File CSV lưu tại: rx150_perception/data/pick_place_moveit_20260813_134500.csv
+
+# Chạy pick-place A→B VỚI ghi data
+ros2 run rx150_perception test_pick_place_A_to_B.py
+# → File CSV lưu tại: rx150_perception/data/pick_place_A_to_B_20260813_134500.csv
+
+# Chạy KHÔNG ghi data (tiết kiệm bộ nhớ khi demo/debug)
+ros2 run rx150_perception test_pick_place_moveit.py --no-save
+ros2 run rx150_perception test_pick_place_A_to_B.py --no-save
+```
+
+**Cấu trúc file CSV:**
+```
+Time, Pos_0, Pos_1, ..., Pos_N, Vel_0, ..., Vel_N, Eff_0, ..., Eff_N
+0.001, 0.012, -1.799, ...,     0.005, ...,        12.3, ...
+0.011, 0.012, -1.798, ...,     0.008, ...,        11.8, ...
+```
+
+### 6.4. Cách 3: PlotJuggler — Giám sát Realtime & Export CSV thủ công
+
+PlotJuggler **có khả năng export dữ liệu ra CSV** thông qua plugin ToolboxCSV, nhưng thao tác qua giao diện GUI (không tự động từ command line).
+
+**Bước 1: Mở PlotJuggler với Layout sẵn**
 ```bash
 # Terminal 1: Chạy hệ thống robot
 ros2 launch fuzzy_controller fuzzy_control.launch.py
@@ -233,8 +321,8 @@ ros2 launch fuzzy_controller fuzzy_control.launch.py
 ros2 launch fuzzy_controller fuzzy_plot.launch.py
 ```
 
-**Thao tác kết nối dữ liệu trong PlotJuggler:**
-1. Chọn menu **Streaming** $\rightarrow$ **ROS2 Topic Subscriber** $\rightarrow$ Bấm **Add**.
+**Bước 2: Kết nối dữ liệu live**
+1. Chọn menu **Streaming** → **ROS2 Topic Subscriber** → Bấm **Add**.
 2. Chọn các topic:
    - `/rx150/joint_states` (Vị trí & vận tốc thực tế)
    - `/rx150/fuzzy/reference` (Vị trí tham chiếu $q_{ref}$)
@@ -243,39 +331,82 @@ ros2 launch fuzzy_controller fuzzy_plot.launch.py
    - `/rx150/fuzzy/edot` (Vận tốc sai số $\dot{e}$)
 3. Nút **Start** ($\blacktriangleright$): Các đồ thị trên 4 tab (Position, Velocity, PWM, Error) tự động hiển thị dữ liệu sóng real-time.
 
-### Bước 6.2: Ghi Bag & So Sánh A/B (Chế độ Direct Step vs Ruckig Profile)
-Node `fuzzy_node` hỗ trợ bộ phát sinh quỹ đạo mượt Ruckig OTG (`enable_profile: true`). Ta có thể so sánh giữa việc nhảy Step thô và chạy qua Ruckig Profile:
+**Bước 3: Load bag đã ghi để so sánh A/B offline**
+1. Menu **Data** → **Load** → Chọn file `.db3` trong thư mục bag đã ghi (`fuzzy_controller/data/step_*/`, `fuzzy_controller/data/profile_*/`).
+2. Có thể load **nhiều bag cùng lúc** → overlay các đường đồ thị để so sánh trực quan.
 
-```bash
-cd ~/interbotix_ws/src/fuzzy_controller
+**Bước 4: Export CSV từ PlotJuggler (nếu cần cho MATLAB/Python)**
+1. Menu **Toolbox** → **CSV Exporter**.
+2. Chọn các time-series cần export.
+3. Tùy chọn: single-file / multi-file, lọc topic, phân đoạn theo time-gap.
+4. Bấm **Export** → lưu file `.csv`.
 
-# Ghi lần 1: Đánh giá nhảy Step trực tiếp (bật config enable_profile: false)
-./config/fuzzy_record.sh step_run
+> **Lưu ý**: PlotJuggler CSV Exporter chỉ hoạt động trong GUI. Để ghi data tự động cho thí nghiệm lặp lại, hãy dùng `fuzzy_record.sh` (ros2 bag) hoặc `--save-data` trong script pick-place.
 
-# Ghi lần 2: Đánh giá qua Ruckig Profile (bật config enable_profile: true)
-./config/fuzzy_record.sh profile_run
+### 6.5. Thư mục lưu trữ dữ liệu
+
+Sau khi chạy thí nghiệm, dữ liệu được tổ chức vào các thư mục `data/` chuyên dụng:
+
 ```
-*Cách xem lại*: Trong PlotJuggler $\rightarrow$ Menu `Data` $\rightarrow$ `Load ROS2 Bag` $\rightarrow$ Chọn cả 2 thư mục bag vừa ghi $\rightarrow$ Chồng 2 đường đồ thị để thấy sự khác biệt về độ mượt PWM và hiện tượng sụt áp/rung lắc.
+fuzzy_controller/
+└── data/                           ← ros2 bag recordings
+    ├── step_20260813_134100/        ← bag thí nghiệm step
+    ├── profile_20260813_140200/     ← bag thí nghiệm profile
+    └── fuzzy_gravity_20260813_142000/
+
+rx150_perception/
+└── data/                           ← CSV data files
+    ├── pick_place_moveit_20260813_134500.csv
+    ├── pick_place_moveit_20260813_150300.csv
+    └── pick_place_A_to_B_20260813_151000.csv
+```
 
 ---
 
 ## 7. BẢNG CHEATSHEET TỔNG HỢP LỆNH TERMINAL
 
+### 7.1. Build & Code Generation
+
 | Công việc | Dòng lệnh Terminal |
 |---|---|
-| **Build Package** | `cd ~/interbotix_ws && colcon build --packages-select fuzzy_controller && source install/setup.bash` |
+| **Build Fuzzy Package** | `cd ~/interbotix_ws && colcon build --packages-select fuzzy_controller && source install/setup.bash` |
+| **Build FF Package** | `cd ~/interbotix_ws && colcon build --packages-select rx150_ff_controller && source install/setup.bash` |
 | **Sinh lại code C từ .fis** | `cd ~/interbotix_ws/src/fuzzy_controller/src/fuzzy && ./regenerate.sh` |
 | **Xem mặt 3D Web** | `cd ~/interbotix_ws/gen_fit_and_3d_graph && python3 gen_surface.py && python3 build_artifact.py && xdg-open fuzzy_surface.html` |
-| **Test an toàn Khớp 5** | `cd ~/interbotix_ws && gcc -shared -fPIC -O2 -o /tmp/fuzzy_type1.so gen_fit_and_3d_graph/fuzzy_type1.c -lm && python3 test_joint5.py` |
-| **Vẽ đồ thị Overlay Runs** | `cd ~/interbotix_ws && python3 plot_runs.py` |
-| **Launch Fuzzy Arm Real** | `ros2 launch fuzzy_controller fuzzy_control.launch.py` |
+
+### 7.2. Chạy hệ thống
+
+| Công việc | Dòng lệnh Terminal |
+|---|---|
+| **Launch Fuzzy Controller** | `ros2 launch fuzzy_controller fuzzy_control.launch.py` |
+| **Launch MoveIt + Fuzzy** | `ros2 launch fuzzy_controller fuzzy_moveit.launch.py` |
+| **Launch MoveIt + FF** | `ros2 launch rx150_ff_controller ff_moveit.launch.py` |
 | **Mở GUI Tune Tkinter** | `ros2 run fuzzy_controller fuzzy_gui` |
 | **Test Bridge Độc Lập** | `ros2 run fuzzy_controller fuzzy_bridge_test` |
-| **Launch MoveIt 2 + Fuzzy** | `ros2 launch fuzzy_controller fuzzy_moveit.launch.py` |
+| **Test an toàn Khớp 5** | `cd ~/interbotix_ws && gcc -shared -fPIC -O2 -o /tmp/fuzzy_type1.so gen_fit_and_3d_graph/fuzzy_type1.c -lm && python3 test_joint5.py` |
+| **Vẽ đồ thị Overlay Runs** | `cd ~/interbotix_ws && python3 plot_runs.py` |
+
+### 7.3. Thu thập dữ liệu
+
+| Công việc | Dòng lệnh Terminal |
+|---|---|
+| **Ghi ROS2 Bag Fuzzy** | `cd ~/interbotix_ws/src/fuzzy_controller && ./config/fuzzy_record.sh my_experiment` |
+| **Pick-Place MoveIt (có ghi CSV)** | `ros2 run rx150_perception test_pick_place_moveit.py` |
+| **Pick-Place MoveIt (không ghi)** | `ros2 run rx150_perception test_pick_place_moveit.py --no-save` |
+| **Pick-Place A→B (có ghi CSV)** | `ros2 run rx150_perception test_pick_place_A_to_B.py` |
+| **Pick-Place A→B (không ghi)** | `ros2 run rx150_perception test_pick_place_A_to_B.py --no-save` |
 | **Mở PlotJuggler Layout** | `ros2 launch fuzzy_controller fuzzy_plot.launch.py` |
-| **Ghi ROS 2 Bag** | `cd ~/interbotix_ws/src/fuzzy_controller && ./config/fuzzy_record.sh my_test_bag` |
-| **Set Parameter CLI** | `ros2 param set /rx150/fuzzy_node Ku "[600.0, 800.0, 700.0, 700.0, 700.0]"` |
-| **Pub Setpoint CLI** | `ros2 topic pub --once /rx150/fuzzy/setpoint std_msgs/msg/Float64MultiArray "{data: [0.0, -1.8, 1.55, 0.8, 0.0]}"` |
+
+### 7.4. Tune & Monitor
+
+| Công việc | Dòng lệnh Terminal |
+|---|---|
+| **Pub Setpoint Fuzzy** | `ros2 topic pub --once /rx150/fuzzy/setpoint std_msgs/msg/Float64MultiArray "{data: [0.0, -1.8, 1.55, 0.8, 0.0]}"` |
+| **Pub Setpoint FF** | `ros2 topic pub --once /rx150/ff/setpoint std_msgs/msg/Float64MultiArray "{data: [0.0, -1.8, 1.55, 0.8, 0.0]}"` |
+| **Set Ke (Fuzzy)** | `ros2 param set /rx150/fuzzy_node Ke "[2.0, 3.0, 3.0, 1.5, 2.0]"` |
+| **Set Ku (Fuzzy)** | `ros2 param set /rx150/fuzzy_node Ku "[600.0, 800.0, 700.0, 700.0, 700.0]"` |
+| **Set Kv (FF)** | `ros2 param set /rx150/ff_node Kv "[50.0, 50.0, 50.0, 50.0, 50.0]"` |
+| **Set Ka (FF)** | `ros2 param set /rx150/ff_node Ka "[10.0, 10.0, 10.0, 10.0, 10.0]"` |
 
 ---
 *Báo cáo được tổng hợp đầy đủ cho việc soạn thảo bài viết blog kỹ thuật chi tiết.*

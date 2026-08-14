@@ -1,0 +1,5 @@
+# Python deps KHÔNG có qua apt/rosdep — cài bằng:
+#   pip install --user -r requirements.txt
+# torch được ultralytics kéo theo tự động.
+ultralytics
+mediapipe

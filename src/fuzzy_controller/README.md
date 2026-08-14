@@ -21,7 +21,8 @@ Package này cung cấp hệ thống điều khiển mờ (Fuzzy Logic Controlle
 
 ## Cấu trúc thư mục (Packages)
 
-- `config/`: Chứa các file YAML cấu hình gain (`fuzzy_gains.yaml`), cấu hình MoveIt Perception (`sensors_3d.yaml`), cấu hình động cơ (`rx150_fuzzy.yaml`) và layout PlotJuggler.
+- `config/`: Chứa các file YAML cấu hình gain (`fuzzy_gains.yaml`), cấu hình động cơ (`rx150_fuzzy.yaml`) và layout PlotJuggler.
+- *Lưu ý:* phần nhận diện (YOLO/gesture/PCL), camera driver, hand-eye calibration và `sensors_3d.yaml` (Octomap) đã được tách sang package `rx150_perception`. `fuzzy_moveit.launch.py` chỉ include/`load_yaml` từ `rx150_perception`.
 - `launch/`: Các file khởi động tích hợp (chạy độc lập, chạy với MoveIt, chạy PlotJuggler).
 - `scripts/`: Chứa mã nguồn Python cho GUI (`fuzzy_gui`), Node cầu nối quỹ đạo (`fuzzy_trajectory_bridge`) và kịch bản test (`fuzzy_bridge_test`).
 - `src/`: Mã nguồn C++ Node chính (`fuzzy_node.cpp`) và thư viện mã C sinh từ FIS (`src/fuzzy/`).

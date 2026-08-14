@@ -23,6 +23,10 @@
   <exec_depend>interbotix_xsarm_moveit</exec_depend>
   <exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>interbotix_xsarm_control</exec_depend>
+  <!-- Camera + hand-eye (runtime, dùng trong launch). Perception logic giờ ở rx150_perception. -->
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>easy_handeye2</exec_depend>
+  <exec_depend>rx150_perception</exec_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
   <export><build_type>ament_cmake</build_type></export>

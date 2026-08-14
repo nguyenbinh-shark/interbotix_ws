@@ -25,6 +25,7 @@ install(
     scripts/fuzzy_gui
     scripts/fuzzy_trajectory_bridge
     scripts/fuzzy_bridge_test
+    scripts/gripper_trajectory_bridge
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})

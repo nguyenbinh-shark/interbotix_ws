@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rx150_perception</name>
+  <version>0.1.0</version>
+  <description>Nhận diện rx150: YOLOv8 segmentation + cử chỉ tay MediaPipe + PCL clustering + hand-eye calibration. Tách từ fuzzy_controller.</description>
+  <maintainer email="todo@todo.todo">hust</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- ROS Python runtime -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>message_filters</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+
+  <!-- Interbotix SDK + perception + moveit (cho pick_place_rx150.py) -->
+  <exec_depend>interbotix_common_modules</exec_depend>
+  <exec_depend>interbotix_xs_modules</exec_depend>
+  <exec_depend>interbotix_perception_modules</exec_depend>
+  <exec_depend>interbotix_xsarm_control</exec_depend>
+  <exec_depend>interbotix_xsarm_moveit</exec_depend>
+  <exec_depend>interbotix_xsarm_perception</exec_depend>
+
+  <!-- Camera + hand-eye -->
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>apriltag_ros</exec_depend>
+  <exec_depend>easy_handeye2</exec_depend>
+
+  <!-- ultralytics / mediapipe / torch là deps pip (KHÔNG có qua rosdep).
+       Cài: pip install -r requirements.txt -->
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

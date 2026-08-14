@@ -1,0 +1,32 @@
+# Tham số pick-place cho pick_place_moveit_node (Layer 2).
+# /** áp dụng cho node nào load file này (chỉ pick_place_moveit).
+# TUNE các giá trị place_* / grasp_* / table_* cho bàn rx150 thật của bạn.
+/**:
+  ros__parameters:
+    # ---- Grasp geometry ----
+    approach_delta: 0.05         # m — chênh z khi tiếp cận/rút (cao trên vật)
+    grasp_pitch: 0.5             # rad — nghiêng tay gắp (5-DoF: pitch là DOF định hướng duy nhất)
+    finger_grasp_offset: 0.02    # m — hạ thêm để ngón kẹp hai bên vật (ee_link trên đỉnh vật)
+    # ---- Velocity scaling MoveIt (0..1) ----
+    velocity_scale_cruise: 0.3
+    velocity_scale_delicate: 0.1 # descend/place (chậm, an toàn)
+    # ---- Place zone (vị trí thả — TUNE) ----
+    place_x: 0.30
+    place_y: 0.0
+    place_z: 0.05
+    place_pitch: 0.5
+    # ---- Home / retreat ----
+    home_joints: [0.0, -1.80, 1.55, 0.8, 0.0]
+    detection_wait_s: 10.0
+    # ---- Gripper ----
+    # true  = qua MoveIt gripper_trajectory_bridge (stall-aware, giữ lực khi vận chuyển) — khuyến nghị
+    # false = raw PWM JointSingleCommand (fallback, như test_pick_place_moveit.py)
+    use_gripper_bridge: true
+    # ---- Collision: box bàn (ADD planning scene) + OctoMap từ pointcloud ----
+    add_table_collision: true
+    table_x: 0.30
+    table_y: 0.0
+    table_z: -0.02              # tâm box: mặt bàn ~z=0 → đỉnh box ≈ z + size_z/2 < 0
+    table_size_x: 0.80
+    table_size_y: 0.80
+    table_size_z: 0.10
