@@ -308,40 +308,41 @@ Time, Pos_0, Pos_1, ..., Pos_N, Vel_0, ..., Vel_N, Eff_0, ..., Eff_N
 0.011, 0.012, -1.798, ...,     0.008, ...,        11.8, ...
 ```
 
-### 6.4. Cách 3: PlotJuggler — Giám sát Realtime & Export CSV thủ công
+### 6.4. Cách 3: PlotJuggler — Giám sát Realtime & So sánh A/B Offline
 
-PlotJuggler **có khả năng export dữ liệu ra CSV** thông qua plugin ToolboxCSV, nhưng thao tác qua giao diện GUI (không tự động từ command line).
+PlotJuggler cung cấp giao diện đồ hoạ cho phép **giám sát trực quan các đáp ứng thời gian thực (Realtime Live Streaming)** cũng như **nạp nhiều bản ghi ROS 2 Bag (`.db3`) cùng lúc để so sánh đáp ứng (A/B Testing)** giữa bộ điều khiển Mờ và bộ điều khiển PID truyền thống.
 
-**Bước 1: Mở PlotJuggler với Layout sẵn**
+**Bước 1: Khởi động PlotJuggler với Layout XML sẵn**
 ```bash
-# Terminal 1: Chạy hệ thống robot
-ros2 launch rx150_fuzzy_controller fuzzy_control.launch.py
+# Terminal 1: Khởi chạy bộ điều khiển mờ và robot (hoặc mô phỏng)
+ros2 launch rx150_fuzzy_controller fuzzy_moveit.launch.py
 
-# Terminal 2: Mở PlotJuggler (layout dùng chung trong data_analysis/)
+# Terminal 2: Mở PlotJuggler kèm theo Layout dùng chung
 ros2 run plotjuggler plotjuggler -l ~/interbotix_ws/data_analysis/layouts/fuzzy_plotjuggler_layout.xml
 ```
 
-**Bước 2: Kết nối dữ liệu live**
-1. Chọn menu **Streaming** → **ROS2 Topic Subscriber** → Bấm **Add**.
-2. Chọn các topic:
-   - `/rx150/joint_states` (Vị trí & vận tốc thực tế)
-   - `/rx150/fuzzy/reference` (Vị trí tham chiếu $q_{ref}$)
-   - `/rx150/fuzzy/error` (Sai số vị trí $e$)
-   - `/rx150/fuzzy/effort` (Xung PWM điều khiển $u$)
-   - `/rx150/fuzzy/edot` (Vận tốc sai số $\dot{e}$)
-3. Nút **Start** ($\blacktriangleright$): Các đồ thị trên 4 tab (Position, Velocity, PWM, Error) tự động hiển thị dữ liệu sóng real-time.
+**Bước 2: Kết nối dữ liệu trực tuyến (Live Streaming)**
+1. Chọn panel **Streaming** (bên cột trái) $\rightarrow$ Dropdown chọn **ROS2 Topic Subscriber** $\rightarrow$ Bấm **Start** ($\blacktriangleright$).
+2. Trong hộp thoại chọn topic, tích chọn các topic chính:
+   - `/rx150/joint_states` (Vị trí $q$ và vận tốc thực $\dot{q}$ từ động cơ)
+   - `/rx150/fuzzy/reference` (Góc vị trí đặt $q_{ref}$ và vận tốc đặt $\dot{q}_{ref}$)
+   - `/rx150/fuzzy/error` (Sai số vị trí góc $e = q_{ref} - q$)
+   - `/rx150/fuzzy/edot` (Đạo hàm sai số $\dot{e}$)
+   - `/rx150/fuzzy/effort` (Tín hiệu điều khiển PWM $u$ và momen bù trọng lực)
+3. Các dạng sóng thu được sẽ tự động phân bổ vào **4 Tab đồ thị đã cấu hình sẵn** (Position & Reference, Joint Velocity, Error & Edot, Control Effort PWM).
 
-**Bước 3: Load bag đã ghi để so sánh A/B offline**
-1. Menu **Data** → **Load** → Chọn file `.db3` trong thư mục bag đã ghi (`rx150_fuzzy_controller/data/step_*/`, `rx150_fuzzy_controller/data/profile_*/`).
-2. Có thể load **nhiều bag cùng lúc** → overlay các đường đồ thị để so sánh trực quan.
+**Bước 3: Nạp bản ghi ROS 2 Bag để Phân tích & So sánh A/B Offline**
+1. Chọn menu **Data** $\rightarrow$ **Load Data from File** $\rightarrow$ Chọn file bản ghi dạng `.db3` hoặc `.mcap` trong thư mục `src/rx150_fuzzy_controller/data/`.
+2. **Kỹ thuật Chồng đồ thị (Overlay)**: Nạp tiếp tệp bản ghi của đợt thử nghiệm thứ 2 (ví dụ: đợt chạy bộ điều khiển PID hoặc đường chạy Step vs Profile).
+3. Đặt **Prefix** phân biệt cho từng đợt chạy (VD: `Fuzzy_` và `PID_`). Kéo các biến tương ứng vào chung một khung đồ thị để đánh giá thời gian tăng ($t_r$), thời gian quá độ ($t_s$) và độ vọt lố (%OS).
 
-**Bước 4: Export CSV từ PlotJuggler (nếu cần cho MATLAB/Python)**
-1. Menu **Toolbox** → **CSV Exporter**.
-2. Chọn các time-series cần export.
-3. Tùy chọn: single-file / multi-file, lọc topic, phân đoạn theo time-gap.
-4. Bấm **Export** → lưu file `.csv`.
+**Bước 4: Xuất dữ liệu CSV từ GUI PlotJuggler**
+1. Chọn menu **Toolbox** $\rightarrow$ **CSV Exporter**.
+2. Chọn các chuỗi thời gian (time-series) muốn xuất $\rightarrow$ Chọn khung thời gian (Toàn bộ hoặc Zoom vùng quan tâm).
+3. Bấm **Export to File** $\rightarrow$ Lưu file `.csv` phục vụ xử lý lại trong Python/MATLAB.
 
-> **Lưu ý**: PlotJuggler CSV Exporter chỉ hoạt động trong GUI. Để ghi data tự động cho thí nghiệm lặp lại, hãy dùng `fuzzy_record.sh` (ros2 bag) hoặc `--save-data` trong script pick-place.
+> **Lưu ý**: Khác với việc ghi CSV tự động thông qua `csv_logger.py`, tính năng Export CSV của PlotJuggler thực hiện trực tiếp trên giao diện GUI và rất phù hợp khi cần trích xuất nhanh một phân đoạn thí nghiệm cụ thể để minh hoạ trong báo cáo.
+
 
 ### 6.5. Thư mục lưu trữ dữ liệu
 

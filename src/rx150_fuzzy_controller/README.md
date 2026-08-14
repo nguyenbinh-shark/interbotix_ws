@@ -43,12 +43,26 @@ ros2 run fuzzy_controller fuzzy_gui
 - Sử dụng tab **Setpoint** để điều khiển robot thủ công.
 - Sử dụng tab **Gains** để chỉnh sửa và **Lưu vào yaml** các thông số PID/Fuzzy.
 
-### 3. Trực quan hoá dữ liệu
-PlotJuggler và các công cụ vẽ đồ thị được quản lý tập trung tại [data_analysis/](../../../data_analysis/). Xem hướng dẫn tại đó.
+### 3. Trực quan hoá & Giám sát dữ liệu (PlotJuggler)
+
+Hệ thống cung cấp sẵn XML layout dùng chung và các script ghi dữ liệu trong module [data_analysis/](../../../data_analysis/).
+
+#### Mở PlotJuggler với Layout cấu hình sẵn:
 ```bash
-# Mở PlotJuggler với layout fuzzy
 ros2 run plotjuggler plotjuggler -l ~/interbotix_ws/data_analysis/layouts/fuzzy_plotjuggler_layout.xml
 ```
+
+#### Các Topic chính được theo dõi trong PlotJuggler:
+| Tên Topic trong ROS 2 | Loại Message | Mục đích giám sát |
+| :--- | :--- | :--- |
+| `/rx150/fuzzy/reference` | `sensor_msgs/msg/JointState` | Vị trí góc đặt ($q_{ref}$) và vận tốc đặt ($\dot{q}_{ref}$) |
+| `/rx150/joint_states` | `sensor_msgs/msg/JointState` | Vị trí góc thực tế ($q$) và vận tốc thực ($\dot{q}$) từ Encoder |
+| `/rx150/fuzzy/error` | `sensor_msgs/msg/JointState` | Sai số vị trí ($e = q_{ref} - q$) từng khớp |
+| `/rx150/fuzzy/edot` | `sensor_msgs/msg/JointState` | Đạo hàm sai số ($\dot{e} = \dot{q}_{ref} - \dot{q}$) |
+| `/rx150/fuzzy/effort` | `sensor_msgs/msg/JointState` | Xung PWM điều khiển ($u$) và Momen bù trọng lực |
+
+> Xem tài liệu chi tiết về quy trình Live Streaming, nạp ROS Bag offline, export CSV và vẽ đồ thị xuất bản tại [data_analysis/README.md](../../../data_analysis/README.md).
+
 
 ## Thông tin chi tiết
 Để xem hướng dẫn chuyên sâu về việc thiết kế luật mờ, cách sinh mã C từ FIS, kiểm thử an toàn từng khớp và so sánh hiệu suất qua bag file, vui lòng đọc tài liệu hướng dẫn kỹ thuật: [huong_dan_chi_tiet_blog.md](../../../huong_dan_chi_tiet_blog.md).
