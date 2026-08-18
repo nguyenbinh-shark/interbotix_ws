@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypins="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rx150_hri</name>
+  <version>0.1.0</version>
+  <description>rx150 HRI — 1 chức năng tự chứa: đọc nhận diện + xử lý + lựa chọn (hri_task) phát lệnh vị trí/kẹp cho arm qua executor (hri_motion). Phát triển từng bước: B1 gắp/nhả 2 điểm cố định → B2 camera đọc vị trí → B3 gesture → B4 handover.</description>
+  <maintainer email="todo@todo.todo">hust</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- ROS Python runtime + msg -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>interbotix_xs_msgs</exec_depend>
+
+  <!-- Interbotix SDK: hri_motion chỉ dùng InterbotixManipulatorXS làm IK-oracle (execute=False) -->
+  <exec_depend>interbotix_common_modules</exec_depend>
+  <exec_depend>interbotix_xs_modules</exec_depend>
+
+  <!-- Launch include yolo_detector.launch.py (Layer 1) ở B2 trở đi -->
+  <exec_depend>rx150_perception</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

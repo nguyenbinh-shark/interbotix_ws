@@ -1,0 +1,44 @@
+# Tham số cho rx150_hri (hri_task + hri_motion — mỗi node tự lấy param nó khai báo).
+# /** áp dụng cho cả 2 node (pattern như pick_place_params.yaml).
+# TUNE pick_* / place_* cho bàn rx150 thật của bạn (BƯỚC 1 — điểm cố định).
+/**:
+  ros__parameters:
+    # ---- Chức năng (hri_task) ----
+    mode: fixed                 # fixed (B1) | camera (B2 — tới)
+    base_frame: rx150/base_link # frame bắt buộc của /hri/cmd_pose
+    auto_start: true            # true = chạy chu kỳ ngay khi executor READY
+    cycles: 1                   # số chu kỳ; -1 = lặp vô hạn
+    # ---- BƯỚC 1: điểm gắp (TUNE) ----
+    pick_x: 0.25
+    pick_y: 0.10
+    pick_z: 0.05
+    pick_pitch: 0.5             # rad — nghiêng tay gắp (5-DoF: pitch là DOF định hướng duy nhất)
+    # ---- BƯỚC 1: điểm nhả (TUNE) ----
+    place_x: 0.30
+    place_y: -0.10
+    place_z: 0.05
+    place_pitch: 0.5
+    # ---- Hình học lệnh (hri_task) ----
+    approach_delta: 0.05        # m — chênh z khi tiếp cận/rút
+    finger_grasp_offset: 0.02   # m — hạ thêm để ngón kẹp hai bên vật
+    retreat_m: 0.10             # m — lùi ngang sau khi nhả
+    status_timeout_s: 45.0      # s — chờ /hri/status mỗi lệnh
+    # ---- Velocity scaling MoveIt (0..1) ----
+    velocity_scale_cruise: 0.3
+    velocity_scale_delicate: 0.1    # descend/place (chậm, an toàn)
+    # ---- Executor (hri_motion) ----
+    allowed_time_s: 5.0         # s — plan+execute mỗi lệnh pose
+    cmd_queue_depth: 4
+    home_joints: [0.0, -1.80, 1.55, 0.8, 0.0]
+    # ---- Gripper ----
+    # true  = qua MoveIt gripper_trajectory_bridge (stall-aware, giữ lực khi vận chuyển) — khuyến nghị
+    # false = raw PWM JointSingleCommand (fallback)
+    use_gripper_bridge: true
+    # ---- Collision: box bàn (ADD planning scene) ----
+    add_table_collision: true
+    table_x: 0.30
+    table_y: 0.0
+    table_z: -0.02              # tâm box: mặt bàn ~z=0 → đỉnh box ≈ z + size_z/2 < 0
+    table_size_x: 0.80
+    table_size_y: 0.80
+    table_size_z: 0.10

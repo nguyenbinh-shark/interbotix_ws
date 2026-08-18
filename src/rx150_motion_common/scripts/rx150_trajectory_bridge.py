@@ -37,6 +37,10 @@ ARM_JOINTS = ['waist', 'shoulder', 'elbow', 'wrist_angle', 'wrist_rotate']
 
 class Rx150TrajectoryBridge(Node):
     def __init__(self):
+        # ---------- MUST initialize superclass FIRST ----------
+        # Temporary node name to start, will be replaced by parameter
+        super().__init__('rx150_trajectory_bridge_temp')
+
         # ---------- parameters ----------
         self.declare_parameter('node_name', 'rx150_trajectory_bridge')
         self.declare_parameter('setpoint_topic', 'setpoint')
@@ -49,8 +53,6 @@ class Rx150TrajectoryBridge(Node):
         self._setpoint_rate = self.get_parameter('setpoint_rate').value
         self._default_tol = self.get_parameter('default_goal_tolerance').value
         self._goal_time_margin = self.get_parameter('goal_time_margin').value
-
-        super().__init__(node_name)
 
         # ---------- callback group ----------
         self._cb_group = ReentrantCallbackGroup()
