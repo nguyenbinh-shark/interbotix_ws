@@ -1,15 +1,15 @@
 # BSD 3-Clause License
 # Copyright (c) hust
 #
-# Launch MoveIt + fuzzy PWM backend cho rx150.
+# Launch MoveIt + HAC PWM backend cho rx150.
 #
 # Kiến trúc:
-#   xsarm_control (xs_sdk driver)  →  fuzzy_node (PWM closed-loop)
-#                                   →  fuzzy_trajectory_bridge (action server)
+#   xsarm_control (xs_sdk driver)  →  hac_node (PWM closed-loop)
+#                                   →  hac_trajectory_bridge (action server)
 #                                   →  move_group (MoveIt planning)
 #                                   →  rviz2 (tuỳ chọn)
 #
-# MoveIt plan trajectory → bridge nội suy → fuzzy_node bám setpoint bằng PWM.
+# MoveIt plan trajectory → bridge nội suy → hac_node bám setpoint bằng PWM.
 
 import os
 
@@ -97,35 +97,35 @@ def launch_setup(context, *args, **kwargs):
         }.items())
 
     # ------------------------------------------------------------------ #
-    # 2. fuzzy_node (PWM closed-loop controller)                         #
+    # 2. hac_node (PWM closed-loop controller)                         #
     # ------------------------------------------------------------------ #
-    fuzzy_params = os.path.join(
-        get_package_share_directory('rx150_fuzzy_controller'),
+    hac_params = os.path.join(
+        get_package_share_directory('rx150_hac_controller'),
         'config',
-        'rx150_fuzzy_gains.yaml')
+        'rx150_hac_gains.yaml')
 
-    fuzzy_node = Node(
-        package='rx150_fuzzy_controller',
-        executable='fuzzy_node',
-        name='fuzzy_node',
+    hac_node = Node(
+        package='rx150_hac_controller',
+        executable='hac_node',
+        name='hac_node',
         namespace=robot_name,
         output='screen',
         parameters=[
-            fuzzy_params,
+            hac_params,
             {'robot_description': robot_description_launch_arg},
             {'enable_profile': False}
         ])
 
     # ------------------------------------------------------------------ #
-    # 3. fuzzy_trajectory_bridge (FollowJointTrajectory action server)   #
+    # 3. hac_trajectory_bridge (FollowJointTrajectory action server)   #
     # ------------------------------------------------------------------ #
     bridge_node = Node(
         package='rx150_motion_common',
         executable='rx150_trajectory_bridge.py',
-        name='fuzzy_trajectory_bridge',
+        name='hac_trajectory_bridge',
         namespace=robot_name,
         output='screen',
-        parameters=[{'setpoint_topic': 'fuzzy/setpoint'}])
+        parameters=[{'setpoint_topic': 'hac/setpoint'}])
 
     # ------------------------------------------------------------------ #
     # 3b. gripper_trajectory_bridge (PWM FJT server cho MoveIt)          #
@@ -343,7 +343,7 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         xsarm,
-        fuzzy_node,
+        hac_node,
         bridge_node,
         gripper_bridge_node,
         move_group_node,
@@ -460,14 +460,20 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'rs_camera_rgb_profile',
             default_value='640x480x30',
-            description='color stream profile `<W>x<H>x<FPS>` (rs_launch rgb_camera.color_profile).',
+            description=(
+                'color stream profile `<W>x<H>x<FPS>` '
+                '(rs_launch rgb_camera.color_profile).'
+            ),
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument(
             'rs_camera_depth_profile',
             default_value='640x480x30',
-            description='depth stream profile `<W>x<H>x<FPS>` (rs_launch depth_module.depth_profile).',
+            description=(
+                'depth stream profile `<W>x<H>x<FPS>` '
+                '(rs_launch depth_module.depth_profile).'
+            ),
         )
     )
     declared_arguments.append(
@@ -510,4 +516,3 @@ def generate_launch_description():
 
     return LaunchDescription(
         declared_arguments + [OpaqueFunction(function=launch_setup)])
-   

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rx150_hac_controller</name>
+  <version>0.1.0</version>
+  <description>Linear HAC controller with Ruckig trajectory profiling and Pinocchio gravity compensation for the Interbotix rx150 arm.</description>
+  <maintainer email="todo@todo.todo">hust</maintainer>
+  <license>BSD</license>
+
+  <exec_depend>rx150_motion_common</exec_depend>
+  <exec_depend>rx150_fuzzy_controller</exec_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>interbotix_xs_msgs</depend>
+  <depend>ruckig</depend>
+  <depend>pinocchio</depend>
+  <depend>urdf</depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-tk</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
+  <exec_depend>interbotix_xs_modules</exec_depend>
+  <exec_depend>interbotix_xsarm_moveit</exec_depend>
+  <exec_depend>moveit_ros_move_group</exec_depend>
+  <exec_depend>interbotix_xsarm_control</exec_depend>
+  <exec_depend>realsense2_camera</exec_depend>
+  <exec_depend>easy_handeye2</exec_depend>
+  <exec_depend>rx150_perception</exec_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

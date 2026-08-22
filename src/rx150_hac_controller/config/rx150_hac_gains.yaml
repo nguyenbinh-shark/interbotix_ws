@@ -1,0 +1,30 @@
+# V1: 100 Hz an toàn (không patch vendor). Key PHẢI khớp tên node fully-qualified.
+/rx150/hac_node:
+  ros__parameters:
+    group_name: "arm"
+    loop_rate: 100.0          # = update_rate; Phase 2 bump lên 500 cùng patch FastSyncRead
+    watchdog_timeout: 0.2
+    reference_pose: [0.0, -1.80, 1.55, 0.8, 0.0]   # 5 khớp arm [waist,shoulder,elbow,wrist_angle,wrist_rotate] (rad); [] -> lấy sleep_positions
+    # HAC surface coefficients (scalar, live-tunable via ROS parameters).
+    a: 0.3
+    b: 12.0
+    c: 1200.0
+    # --- Saturation Limits (Direct Saturation, NOT Normalization) ---
+    # Giới hạn trực tiếp error và error_dot (tương đương ngưỡng 1.0 của bộ Fuzzy)
+    error_limit: [0.5, 0.333, 0.333, 0.2, 0.5]         # = 1 / Ke của Fuzzy
+    error_dot_limit: [3.14, 3.14, 3.14, 3.14, 3.14]  # = 1 / Ked của Fuzzy
+    # u_max là ngưỡng bão hòa an toàn (hardware cap ≤ ±885) đồng thời là gain điều khiển.
+    u_max: [600.0, 600.0, 600.0, 600.0, 600.0]
+    # --- Gravity Compensation (Pinocchio RNEA) ---
+    enable_gravity_comp: true
+    # Hệ số chuyển đổi N·m → PWM cho từng khớp [waist, shoulder, elbow, wrist_angle, wrist_rotate]
+    # Ước lượng từ datasheet: stall_torque @ 12V → PWM=885
+    Gff: [150.0, 255.0, 255.0, 500.0, 200.0]
+    # Dấu bù trọng lực: +1 hoặc -1, phụ thuộc Drive_Mode (reverse) của motor
+    gravity_sign: [1.0, 1.0, 1.0, 1.0, 1.0]
+    # --- Profile vận tốc/gia tốc trước bộ HAC (Ruckig = TOTG, tương đương MoveIt2) ---
+    enable_profile: true          # false = behavior cũ (step), để so sánh A/B
+    max_velocities:    [3.14, 3.14, 3.14, 3.14, 3.14]  # rad/s (π, theo URDF); MoveIt2 đặt has_velocity_limits=false
+    max_accelerations: [5.0, 5.0, 5.0, 5.0, 5.0]        # rad/s² (= giới hạn MoveIt2 rx150_joint_limits.yaml)
+    max_jerk: 0.0               # 0 -> jerk lớn (≈bang-bang accel, gần TOTG nhất); >0 -> mượt kiểu S-curve
+    sync_mode: false            # false = per-khớp độc lập (nhanh nhất); true = đồng bộ tất cả khớp về đích cùng lúc

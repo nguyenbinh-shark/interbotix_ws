@@ -37,5 +37,6 @@
         "/home/hust/ws_moveit/install/launch_param_builder/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
-    ]
+    ],
+    "cmake.sourceDirectory": "/home/hust/interbotix_ws/src/interbotix_ros_core/interbotix_ros_slate/interbotix_slate_driver"
 }

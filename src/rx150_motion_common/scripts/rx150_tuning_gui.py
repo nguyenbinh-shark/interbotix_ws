@@ -3,18 +3,22 @@
 rx150_tuning_gui — GUI tune node controller (rx150) chọn bằng param target: 2 tab.
 
 Tab "Setpoint": 5 slider đặt vị trí đích (rad) -> publish /rx150/{target}/setpoint.
-Tab "Gains":    lưới gain (Ke/Ked/Ku/u_max + Gff/gravity_sign nếu fuzzy, Kv/Ka nếu ff)
+Tab "Gains":    lưới gain (Ke/Ked/Ku/u_max + Gff/gravity_sign nếu fuzzy,
+                Gff nếu HAC, Kv/Ka nếu ff)
                 × 5 khớp -> set_parameters trên /rx150/{target}_node (live-gain, không relaunch).
 
 Parameters:
-  target:         'fuzzy' (default) hoặc 'ff' → chọn controller để tune
+  target:         'fuzzy' (default), 'hac' hoặc 'ff' → chọn controller để tune
   setpoint_topic: topic setpoint (default từ target)
   target_node:    node set param (default từ target)
   publish_rate:   tần suất publish setpoint (default 20 Hz)
 
 Chạy:
   ros2 run rx150_motion_common rx150_tuning_gui.py                → tune fuzzy_node
-  ros2 run rx150_motion_common rx150_tuning_gui.py target:=ff    → tune ff_node
+  ros2 run rx150_motion_common rx150_tuning_gui.py --ros-args -p target:=hac
+                                                                  → tune hac_node
+  ros2 run rx150_motion_common rx150_tuning_gui.py --ros-args -p target:=ff
+                                                                  → tune ff_node
 
 Lưu ý: KHÔNG qua MoveIt (MoveIt cần POSITION mode, xung đột PWM mode của controller).
 """
@@ -26,6 +30,7 @@ from tkinter import ttk, simpledialog
 
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from rcl_interfaces.srv import SetParameters, GetParameters
 from rcl_interfaces.msg import Parameter as ParamMsg, ParameterValue, ParameterType
 from std_msgs.msg import Float64MultiArray
@@ -52,6 +57,18 @@ FUZZY_GAIN_DEFAULTS = {
     "gravity_sign": [1.0, 1.0, 1.0, 1.0, 1.0],
 }
 
+# HAC giữ gain per-joint và gravity compensation như fuzzy. Chỉ các tham số
+# mà HAC hỗ trợ live-update được đưa vào grid; a/b/c là scalar, còn
+# gravity_sign chỉ đọc từ YAML và không tune qua GUI.
+HAC_GAIN_ORDER = COMMON_GAIN_ORDER + ["Gff"]
+HAC_GAIN_DEFAULTS = {
+    "Ke": [1.0, 1.0, 1.0, 1.0, 1.0],
+    "Ked": [1.0, 1.0, 1.0, 1.0, 1.0],
+    "Ku": [1.0, 1.0, 1.0, 1.0, 1.0],
+    "u_max": [600.0, 600.0, 600.0, 600.0, 600.0],
+    "Gff": [150.0, 255.0, 255.0, 500.0, 200.0],
+}
+
 # Gains riêng ff (feedforward vel/acc).
 FF_GAIN_ORDER = COMMON_GAIN_ORDER + ["Kv", "Ka"]
 FF_GAIN_DEFAULTS = {
@@ -63,6 +80,10 @@ FF_GAIN_DEFAULTS = {
 
 class Rx150TuningGuiNode(Node):
     def __init__(self):
+        # Node phải được khởi tạo trước khi declare/get parameter. Tên node cố
+        # định; controller đích vẫn được phân biệt bằng parameter `target`.
+        super().__init__("rx150_tuning_gui")
+
         # ---------- parameters ----------
         self.declare_parameter("target", "fuzzy")
         self.declare_parameter("setpoint_topic", "")
@@ -70,21 +91,22 @@ class Rx150TuningGuiNode(Node):
         self.declare_parameter("publish_rate", 20.0)
 
         target = self.get_parameter("target").value
-        if target not in ("fuzzy", "ff"):
-            self.get_logger().error(f"target phải là 'fuzzy' hoặc 'ff', nhận: '{target}'")
+        if target not in ("fuzzy", "hac", "ff"):
+            self.get_logger().error(
+                f"target phải là 'fuzzy', 'hac' hoặc 'ff', nhận: '{target}'")
             raise ValueError(f"Invalid target: {target}")
 
         # Nếu setpoint_topic trống, suy ra từ target.
         setpoint_topic = self.get_parameter("setpoint_topic").value
         if not setpoint_topic:
             setpoint_topic = f"/rx150/{target}/setpoint"
-            self.set_parameter({"setpoint_topic": setpoint_topic})
+            self.set_parameters([Parameter("setpoint_topic", value=setpoint_topic)])
 
         # Nếu target_node trống, suy ra từ target.
         target_node = self.get_parameter("target_node").value
         if not target_node:
             target_node = f"/rx150/{target}_node"
-            self.set_parameter({"target_node": target_node})
+            self.set_parameters([Parameter("target_node", value=target_node)])
 
         self.rate = float(self.get_parameter("publish_rate").value)
 
@@ -94,6 +116,11 @@ class Rx150TuningGuiNode(Node):
             self.gain_defaults = FUZZY_GAIN_DEFAULTS
             self.config_package = "rx150_fuzzy_controller"
             self.config_file = "rx150_fuzzy_gains.yaml"
+        elif target == "hac":
+            self.gain_order = HAC_GAIN_ORDER
+            self.gain_defaults = HAC_GAIN_DEFAULTS
+            self.config_package = "rx150_hac_controller"
+            self.config_file = "rx150_hac_gains.yaml"
         else:  # ff
             self.gain_order = FF_GAIN_ORDER
             self.gain_defaults = FF_GAIN_DEFAULTS
@@ -102,8 +129,6 @@ class Rx150TuningGuiNode(Node):
 
         self.joints = list(DEFAULT_JOINTS)
         self.pose = list(DEFAULT_POSE)
-
-        super().__init__(f"rx150_tuning_gui_{target}")
 
         self.topic = setpoint_topic
         self.target_node = target_node
